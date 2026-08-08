@@ -102,8 +102,8 @@
       border: 2px solid #38bdf8;
       border-radius: 12px;
       padding: 20px;
-      width: 90%;
-      max-width: 440px;
+      width: 95%;
+      max-width: 520px;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
       z-index: 20;
       color: #fff;
@@ -121,6 +121,22 @@
       color: #94a3b8;
       margin-bottom: 6px;
       font-weight: bold;
+    }
+    .inventory-container {
+      display: flex;
+      gap: 15px;
+    }
+    .main-inv-area {
+      flex: 1;
+    }
+    .armor-equip-area {
+      width: 65px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      padding-left: 12px;
     }
     .inv-grid {
       display: grid;
@@ -170,7 +186,7 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      max-height: 150px;
+      max-height: 140px;
       overflow-y: auto;
     }
     .recipe-card {
@@ -218,11 +234,22 @@
 
   <div id="inventory-modal">
     <h2>ENVANTER VE ÜRETİM</h2>
-    <div class="section-title">Hotbar (Hızlı Erişim - 5 Slot)</div>
-    <div class="inv-grid" id="modal-hotbar-grid"></div>
-    <div class="section-title">Ana Depo (Envanter)</div>
-    <div class="inv-grid" id="modal-storage-grid"></div>
-    <div class="section-title">Üretim Reçeteleri (Zırhlar & Aletler)</div>
+    <div class="inventory-container">
+      <div class="main-inv-area">
+        <div class="section-title">Hotbar (Hızlı Erişim - 5 Slot)</div>
+        <div class="inv-grid" id="modal-hotbar-grid"></div>
+        <div class="section-title">Ana Depo (17 Slot)</div>
+        <div class="inv-grid" id="modal-storage-grid" style="grid-template-columns: repeat(4, 1fr);"></div>
+      </div>
+      <div class="armor-equip-area">
+        <div class="section-title">Zırhlar</div>
+        <div class="inv-slot" id="armor-slot-head" title="Kask"></div>
+        <div class="inv-slot" id="armor-slot-chest" title="Göğüslük"></div>
+        <div class="inv-slot" id="armor-slot-legs" title="Pantolon"></div>
+        <div class="inv-slot" id="armor-slot-boots" title="Bot"></div>
+      </div>
+    </div>
+    <div class="section-title" style="margin-top: 8px;">Üretim Reçeteleri</div>
     <div class="recipe-list" id="recipe-list"></div>
   </div>
 
@@ -260,8 +287,17 @@ const ITEM_TYPES = {
   10: { name: "Tahta Kazma", solid: false, isTool: true, speed: 4.0, color: "#d97706" },
   11: { name: "Taş Kazma", solid: false, isTool: true, speed: 8.0, color: "#94a3b8" },
   12: { name: "Bakır Kazma", solid: false, isTool: true, speed: 14.0, color: "#f97316" },
-  13: { name: "Taş Zırh Göğüslük", solid: false, isArmor: true, armorColor: "#64748b" },
-  14: { name: "Bakır Zırh Göğüslük", solid: false, isArmor: true, armorColor: "#ea580c" }
+
+  // Zırh Parçaları
+  13: { name: "Taş Kask", solid: false, isArmor: true, armorType: 'head', color: "#64748b" },
+  14: { name: "Taş Göğüslük", solid: false, isArmor: true, armorType: 'chest', color: "#64748b" },
+  15: { name: "Taş Pantolon", solid: false, isArmor: true, armorType: 'legs', color: "#475569" },
+  16: { name: "Taş Bot", solid: false, isArmor: true, armorType: 'boots', color: "#334155" },
+
+  17: { name: "Bakır Kask", solid: false, isArmor: true, armorType: 'head', color: "#ea580c" },
+  18: { name: "Bakır Göğüslük", solid: false, isArmor: true, armorType: 'chest', color: "#ea580c" },
+  19: { name: "Bakır Pantolon", solid: false, isArmor: true, armorType: 'legs', color: "#c2410c" },
+  20: { name: "Bakır Bot", solid: false, isArmor: true, armorType: 'boots', color: "#9a3412" }
 };
 
 let world = [];
@@ -327,8 +363,7 @@ let player = {
   grounded: false,
   facing: 1,
   selectedSlot: 0,
-  animFrame: 0,
-  equippedArmorColor: null
+  animFrame: 0
 };
 
 let camX = player.x;
@@ -337,11 +372,21 @@ let camY = player.y;
 const hotbar = [
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
 ];
+// Envantere 5 slot daha eklendi (Toplam 17 slot depolama)
 const storage = [
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
-  { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+  { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+  { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
 ];
+
+// Giyilen Zırh Slotları
+const equippedArmor = {
+  head: { id: 0, count: 0 },
+  chest: { id: 0, count: 0 },
+  legs: { id: 0, count: 0 },
+  boots: { id: 0, count: 0 }
+};
 
 const itemCounts = {};
 
@@ -357,6 +402,7 @@ function updateItemCounts() {
   };
   hotbar.forEach(tally);
   storage.forEach(tally);
+  Object.values(equippedArmor).forEach(tally);
 }
 
 function addPlayerItem(itemId, count = 1) {
@@ -525,7 +571,6 @@ function updatePhysics() {
   }
 }
 
-// Özel Grafik Oluşturucu (Madde detayları ile)
 function renderTile(id, x, y, size, targetCtx) {
   if (!id || id === 0) return;
   const info = ITEM_TYPES[id];
@@ -545,11 +590,11 @@ function renderTile(id, x, y, size, targetCtx) {
   }
 
   if (info.isArmor) {
-    targetCtx.fillStyle = info.armorColor;
-    targetCtx.fillRect(x + 6, y + 6, size - 12, size - 12);
+    targetCtx.fillStyle = info.color;
+    targetCtx.fillRect(x + 5, y + 5, size - 10, size - 10);
     targetCtx.strokeStyle = "#fff";
     targetCtx.lineWidth = 1;
-    targetCtx.strokeRect(x + 6, y + 6, size - 12, size - 12);
+    targetCtx.strokeRect(x + 5, y + 5, size - 10, size - 10);
     return;
   }
 
@@ -573,12 +618,9 @@ function renderTile(id, x, y, size, targetCtx) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 5, y + 6, 6, 5);
   } else if (id === 6 || id === 7) {
-    // Özel kömür ve bakır taş dokusu
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 4, y + 5, 5, 5);
     targetCtx.fillRect(x + 20, y + 18, 6, 5);
-    
-    // Maden Özü Detayları
     targetCtx.fillStyle = info.oreColor;
     targetCtx.fillRect(x + 6, y + 7, 5, 5);
     targetCtx.fillRect(x + 21, y + 19, 4, 4);
@@ -591,28 +633,31 @@ function renderTile(id, x, y, size, targetCtx) {
   }
 }
 
-// Oyuncu Render (Elde eşya gösterme ve kırma yumruklama animasyonu ile)
+// Oyuncu Render (Tam Zırh Görünümü ve İki Kol Hatasız Çizim)
 function renderPlayerTerraria(screenX, screenY) {
   let anim = Math.sin(player.animFrame) * 4;
   ctx.save();
   ctx.translate(screenX + player.w / 2, screenY + player.h / 2);
   if (player.facing === -1) ctx.scale(-1, 1);
 
-  // Ayaklar
-  ctx.fillStyle = "#451a03";
-  ctx.fillRect(-6, 12 + anim, 5, 8);
-  ctx.fillRect(2, 12 - anim, 5, 8);
+  // Botlar (Ayaklar)
+  let bootsItem = ITEM_TYPES[equippedArmor.boots.id];
+  ctx.fillStyle = bootsItem ? bootsItem.color : "#451a03";
+  ctx.fillRect(-6, 15 + anim, 5, 5);
+  ctx.fillRect(2, 15 - anim, 5, 5);
 
   // Pantolon
-  ctx.fillStyle = "#1e3a8a";
-  ctx.fillRect(-6, 4, 5, 9);
-  ctx.fillRect(2, 4, 5, 9);
+  let legsItem = ITEM_TYPES[equippedArmor.legs.id];
+  ctx.fillStyle = legsItem ? legsItem.color : "#1e3a8a";
+  ctx.fillRect(-6, 5, 5, 10);
+  ctx.fillRect(2, 5, 5, 10);
 
-  // Gövde ve Zırh
-  ctx.fillStyle = player.equippedArmorColor || "#dc2626";
+  // Gövde ve Göğüslük
+  let chestItem = ITEM_TYPES[equippedArmor.chest.id];
+  ctx.fillStyle = chestItem ? chestItem.color : "#dc2626";
   ctx.fillRect(-7, -8, 14, 13);
 
-  // Kollar ve Kırma Animasyonu (Sol Tık basılıyken kol öne sallanır)
+  // Sağ Kol ve Elindeki Eşya / Alet (Kırma Animasyonlu)
   ctx.fillStyle = "#fca5a5";
   let armAngle = mining.active ? Math.sin(Date.now() * 0.02) * 0.8 : -0.2;
   ctx.save();
@@ -620,7 +665,6 @@ function renderPlayerTerraria(screenX, screenY) {
   ctx.rotate(armAngle);
   ctx.fillRect(0, 0, 4, 10);
 
-  // Elinde tuttuğu eşyayı veya aleti göster
   let activeSlot = hotbar[player.selectedSlot];
   if (activeSlot.count > 0 && activeSlot.id !== 0) {
     ctx.save();
@@ -629,6 +673,10 @@ function renderPlayerTerraria(screenX, screenY) {
     ctx.restore();
   }
   ctx.restore();
+
+  // Sol Kol (Kayıp olma sorunu giderildi, her zaman yerinde)
+  ctx.fillStyle = "#fca5a5";
+  ctx.fillRect(-10, -6 - anim * 0.5, 4, 10);
 
   // Kafa
   ctx.fillStyle = "#fca5a5";
@@ -639,9 +687,15 @@ function renderPlayerTerraria(screenX, screenY) {
   ctx.fillRect(-2, -16, 2, 4);
   ctx.fillRect(3, -16, 2, 4);
 
-  // Saç / Şapka
-  ctx.fillStyle = "#78350f";
-  ctx.fillRect(-7, -23, 15, 4);
+  // Kask / Saç
+  let headItem = ITEM_TYPES[equippedArmor.head.id];
+  if (headItem) {
+    ctx.fillStyle = headItem.color;
+    ctx.fillRect(-7, -24, 15, 6);
+  } else {
+    ctx.fillStyle = "#78350f";
+    ctx.fillRect(-7, -23, 15, 4);
+  }
 
   ctx.restore();
 }
@@ -790,21 +844,35 @@ function buildInventoryUI() {
     stGrid.appendChild(slotDiv);
   }
 
+  // Zırh Kuşanma Slotları (PC için sürükle bırak destekli)
+  ['head', 'chest', 'legs', 'boots'].forEach(type => {
+    let slotDiv = document.getElementById(`armor-slot-${type}`);
+    slotDiv.innerHTML = "";
+    let slot = equippedArmor[type];
+    if (slot.id && slot.id !== 0 && slot.count > 0) {
+      let c = document.createElement("canvas");
+      c.width = 32; c.height = 32;
+      renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
+      slotDiv.appendChild(c);
+      slotDiv.dataset.itemName = ITEM_TYPES[slot.id].name;
+    } else {
+      slotDiv.dataset.itemName = type.toUpperCase() + " ZIRH SLOTU";
+    }
+    setupTooltipEvents(slotDiv);
+    setupArmorDragAndDropEvents(slotDiv, type);
+  });
+
   const list = document.getElementById("recipe-list");
   list.innerHTML = "";
   craftingRecipes.forEach(r => {
     let canCraft = Object.keys(r.cost).every(k => (itemCounts[k] || 0) >= r.cost[k]);
     let card = document.createElement("div");
     card.className = "recipe-card" + (canCraft ? "" : " disabled");
-    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">${canCraft ? (r.isArmorSet ? "GİY / ÜRET" : "ÜRET") : "Eksik"}</span>`;
+    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">${canCraft ? "ÜRET" : "Eksik"}</span>`;
     card.onclick = () => {
       if (canCraft) {
         Object.keys(r.cost).forEach(k => consumePlayerItem(parseInt(k), r.cost[k]));
-        if (r.isArmorSet) {
-          player.equippedArmorColor = r.armorColor;
-        } else {
-          addPlayerItem(r.item, r.count);
-        }
+        addPlayerItem(r.item, r.count);
         buildInventoryUI();
       }
     };
@@ -839,7 +907,7 @@ function setupDragAndDropEvents(elem, type, index) {
     let srcType = draggedItemInfo.type;
     let srcIdx = draggedItemInfo.index;
 
-    let sourceSlot = srcType === 'hotbar' ? hotbar[srcIdx] : storage[srcIdx];
+    let sourceSlot = srcType === 'hotbar' ? hotbar[srcIdx] : (srcType === 'storage' ? storage[srcIdx] : equippedArmor[srcType]);
     let targetSlot = type === 'hotbar' ? hotbar[index] : storage[index];
 
     let temp = { id: sourceSlot.id, count: sourceSlot.count };
@@ -853,14 +921,53 @@ function setupDragAndDropEvents(elem, type, index) {
   };
 }
 
+function setupArmorDragAndDropEvents(elem, armorType) {
+  elem.draggable = true;
+  elem.ondragstart = (e) => {
+    draggedItemInfo = { type: armorType, index: 0 };
+    tooltip.style.display = "none";
+  };
+  elem.ondragover = (e) => e.preventDefault();
+  elem.ondrop = (e) => {
+    e.preventDefault();
+    if (!draggedItemInfo) return;
+    let srcType = draggedItemInfo.type;
+    let srcIdx = draggedItemInfo.index;
+
+    let sourceSlot = srcType === 'hotbar' ? hotbar[srcIdx] : (srcType === 'storage' ? storage[srcIdx] : equippedArmor[srcType]);
+    let targetSlot = equippedArmor[armorType];
+
+    // Gelen eşyanın bu zırh slotuna uygun olup olmadığını kontrol et
+    if (sourceSlot.id !== 0 && ITEM_TYPES[sourceSlot.id].armorType === armorType) {
+      let temp = { id: sourceSlot.id, count: sourceSlot.count };
+      sourceSlot.id = targetSlot.id;
+      sourceSlot.count = targetSlot.count;
+      targetSlot.id = temp.id;
+      targetSlot.count = temp.count;
+    } else if (sourceSlot.id === 0) {
+      targetSlot.id = 0;
+      targetSlot.count = 0;
+    }
+
+    draggedItemInfo = null;
+    buildInventoryUI();
+  };
+}
+
 const craftingRecipes = [
   { item: 8, count: 4, cost: { 4: 1 }, name: "Ahşap Blok (4x)" },
   { item: 9, count: 4, cost: { 8: 2 }, name: "Ahşap Çubuk (4x)" },
   { item: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma" },
   { item: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma" },
   { item: 12, count: 1, cost: { 7: 3, 9: 2 }, name: "Bakır Kazma" },
-  { item: 13, count: 1, cost: { 3: 8 }, name: "Taş Zırh Giy", isArmorSet: true, armorColor: "#64748b" },
-  { item: 14, count: 1, cost: { 7: 8 }, name: "Bakır Zırh Giy", isArmorSet: true, armorColor: "#ea580c" }
+  { item: 13, count: 1, cost: { 3: 5 }, name: "Taş Kask" },
+  { item: 14, count: 1, cost: { 3: 8 }, name: "Taş Göğüslük" },
+  { item: 15, count: 1, cost: { 3: 6 }, name: "Taş Pantolon" },
+  { item: 16, count: 1, cost: { 3: 4 }, name: "Taş Bot" },
+  { item: 17, count: 1, cost: { 7: 5 }, name: "Bakır Kask" },
+  { item: 18, count: 1, cost: { 7: 8 }, name: "Bakır Göğüslük" },
+  { item: 19, count: 1, cost: { 7: 6 }, name: "Bakır Pantolon" },
+  { item: 20, count: 1, cost: { 7: 4 }, name: "Bakır Bot" }
 ];
 
 function toggleInventoryModal() {
