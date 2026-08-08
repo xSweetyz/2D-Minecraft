@@ -8,12 +8,20 @@
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #78a7ff; font-family: 'Courier New', Courier, monospace; }
     #game { display: block; width: 100vw; height: 100vh; }
-    #ui { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 16px; pointer-events: none; }
+    #ui { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 15px; pointer-events: none; }
     #hotbar { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; background: #8b8b8b; padding: 4px; border: 4px solid #3c3c3c; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-    .slot { width: 48px; height: 48px; border: 3px solid #373737; background: #8b8b8b; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
-    .slot.sel { border-color: #ffffff; background: #a0a0a0; transform: scale(1.08); }
+    .slot { width: 44px; height: 44px; border: 3px solid #373737; background: #8b8b8b; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+    .slot.sel { border-color: #ffffff; background: #a0a0a0; }
     .slot canvas { width: 32px; height: 32px; image-rendering: pixelated; }
-    .slot b { position: absolute; bottom: 2px; right: 4px; font-size: 12px; color: #fff; text-shadow: 1px 1px 0 #000; }
+    .slot b { position: absolute; bottom: 2px; right: 4px; font-size: 11px; color: #fff; text-shadow: 1px 1px 0 #000; }
+    
+    /* Crafting & Inventory UI */
+    #craft-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #c6c6c6; border: 4px solid #3c3c3c; padding: 16px; width: 340px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
+    #craft-menu h3 { margin-bottom: 12px; color: #3c3c3c; font-size: 18px; text-align: center; }
+    .recipe-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
+    .recipe-item { display: flex; align-items: center; justify-content: space-between; background: #8b8b8b; padding: 8px; border: 2px solid #3c3c3c; cursor: pointer; color: #fff; }
+    .recipe-item:hover { background: #9e9e9e; }
+    .recipe-item.disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -21,8 +29,14 @@
   <canvas id="game"></canvas>
   <div id="ui">
     <div>❤️ 20/20 | 🍗 20/20</div>
-    <div style="font-size:12px; margin-top:4px; opacity:0.9;">[A/D] Yürü | [W/Space] Zıpla | [Sol Tık] Kır | [Sağ Tık] Koy | [1-6] Slot</div>
+    <div style="font-size:12px; margin-top:4px; opacity:0.9;">[A/D] Yürü | [W/Space] Zıpla | [E] Crafting | [Sol Tık] Kır | [Sağ Tık] Koy</div>
   </div>
+
+  <div id="craft-menu">
+    <h3>CRAFTING (ÜRETİM)</h3>
+    <div class="recipe-list" id="recipes"></div>
+  </div>
+
   <div id="hotbar"></div>
 
 <script>
@@ -32,40 +46,44 @@ ctx.imageSmoothingEnabled = false;
 function resize(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
 window.addEventListener("resize", resize); resize();
 
-const T = 36; // Blok boyutu
-const MAP_W = 120, MAP_H = 60;
+const T = 36;
+const MAP_W = 150, MAP_H = 60;
 
-// Minecraft Blok Tanımları ve Dokuları
+// Blok Özellikleri & Sertlik (Kırma Süresi)
 const B = {
-  0: { name: "air", solid: 0 },
-  1: { name: "grass", solid: 1, needsPick: false },
-  2: { name: "dirt", solid: 1, needsPick: false },
-  3: { name: "stone", solid: 1, needsPick: true },
-  4: { name: "wood", solid: 1, needsPick: false },
-  5: { name: "leaves", solid: 0, needsPick: false },
-  6: { name: "coal_ore", solid: 1, needsPick: true },
-  7: { name: "iron_ore", solid: 1, needsPick: true },
-  8: { name: "pickaxe", solid: 0, isTool: true }
+  0: { name: "Hava", solid: 0 },
+  1: { name: "Çimen", solid: 1, hardness: 15 },
+  2: { name: "Toprak", solid: 1, hardness: 12 },
+  3: { name: "Taş", solid: 1, hardness: 45, needPick: true },
+  4: { name: "Meşe Odunu", solid: 1, hardness: 25 },
+  5: { name: "Yaprak", solid: 0, hardness: 5 },
+  6: { name: "Kömür Madeni", solid: 1, hardness: 55, needPick: true },
+  7: { name: "Demir Madeni", solid: 1, hardness: 70, needPick: true },
+  8: { name: "Tahta", solid: 1, hardness: 20 },
+  9: { name: "Çubuk", solid: 0, isItem: true },
+  10:{ name: "Tahta Kazma", solid: 0, isTool: true, power: 3 },
+  11:{ name: "Taş Kazma", solid: 0, isTool: true, power: 6 }
 };
 
+// Dünya Oluşturma
 let world = [];
 for(let y = 0; y < MAP_H; y++) {
   world[y] = [];
   for(let x = 0; x < MAP_W; x++) {
     if(y < 22) world[y][x] = 0;
-    else if(y === 22) world[y][x] = 1; // Çimen
-    else if(y < 27) world[y][x] = 2; // Toprak
+    else if(y === 22) world[y][x] = 1;
+    else if(y < 27) world[y][x] = 2;
     else {
       let r = Math.random();
-      if(r < 0.05) world[y][x] = 6; // Kömür
-      else if(r < 0.08) world[y][x] = 7; // Demir
-      else world[y][x] = 3; // Taş
+      if(r < 0.04) world[y][x] = 6;
+      else if(r < 0.07) world[y][x] = 7;
+      else world[y][x] = 3;
     }
   }
 }
 
-// Minecraft Meşe Ağaçları
-for(let x = 8; x < MAP_W - 8; x += 10) {
+// Ağaçlar
+for(let x = 12; x < MAP_W - 12; x += 9) {
   if(Math.random() > 0.3) {
     for(let h = 1; h <= 4; h++) world[22 - h][x] = 4;
     for(let lx = -2; lx <= 2; lx++) {
@@ -76,14 +94,23 @@ for(let x = 8; x < MAP_W - 8; x += 10) {
   }
 }
 
-let player = { x: 10 * T, y: 19 * T, w: 22, h: 54, vx: 0, vy: 0, grounded: false, sel: 0 };
-const inv = { 1: 32, 2: 16, 3: 16, 4: 8, 8: 1 };
-const slots = [8, 1, 2, 3, 4];
+let player = {
+  x: 20 * T, y: 19 * T, w: 22, h: 54,
+  vx: 0, vy: 0, grounded: false,
+  sel: 0, animFrame: 0, isMoving: false
+};
+
+const inv = { 1: 0, 2: 10, 3: 0, 4: 8, 8: 0, 9: 0, 10: 0, 11: 0 };
+const slots = [10, 1, 2, 3, 4, 8, 9, 11];
 const keys = {};
+
+// Kırma Sistemi Değişkenleri
+let breaking = { active: false, x: -1, y: -1, progress: 0 };
 
 addEventListener("keydown", e => {
   keys[e.key.toLowerCase()] = true;
-  if("123456".includes(e.key)) player.sel = +e.key - 1;
+  if("12345678".includes(e.key)) player.sel = +e.key - 1;
+  if(e.key.toLowerCase() === "e") toggleCrafting();
 });
 addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
@@ -94,18 +121,24 @@ function isSolid(px, py) {
 }
 
 function update() {
-  if(keys["a"] || keys["arrowleft"]) player.vx = -4;
-  else if(keys["d"] || keys["arrowright"]) player.vx = 4;
-  else player.vx *= 0.75;
+  player.isMoving = false;
+
+  if(keys["a"] || keys["arrowleft"]) { player.vx = -3.8; player.isMoving = true; }
+  else if(keys["d"] || keys["arrowright"]) { player.vx = 3.8; player.isMoving = true; }
+  else player.vx *= 0.7;
 
   if((keys["w"] || keys[" "] || keys["arrowup"]) && player.grounded) {
-    player.vy = -10.5;
+    player.vy = -10.2;
     player.grounded = false;
   }
 
-  player.vy += 0.52; // Yerçekimi
+  player.vy += 0.5; // Yerçekimi
 
-  // Fiziksel Çarpışmalar
+  // Hareket Animasyonu
+  if(player.isMoving && player.grounded) player.animFrame += 0.2;
+  else player.animFrame = 0;
+
+  // Çarpışma X
   player.x += player.vx;
   if(player.vx > 0 && (isSolid(player.x + player.w, player.y) || isSolid(player.x + player.w, player.y + player.h - 2))) {
     player.x = Math.floor((player.x + player.w) / T) * T - player.w - 0.1;
@@ -114,6 +147,7 @@ function update() {
     player.x = Math.floor(player.x / T + 1) * T + 0.1;
   }
 
+  // Çarpışma Y
   player.y += player.vy;
   player.grounded = false;
   if(player.vy > 0 && (isSolid(player.x + 2, player.y + player.h) || isSolid(player.x + player.w - 2, player.y + player.h))) {
@@ -121,79 +155,93 @@ function update() {
     player.vy = 0;
     player.grounded = true;
   }
+
+  // Blok Kırma Güncellemesi
+  if(breaking.active) {
+    let tool = slots[player.sel];
+    let power = B[tool]?.power || 1;
+    let target = world[breaking.y]?.[breaking.x];
+
+    if(target && target !== 0) {
+      breaking.progress += power;
+      if(breaking.progress >= B[target].hardness) {
+        // Blok Kırıldı
+        world[breaking.y][breaking.x] = 0;
+        inv[target] = (inv[target] || 0) + 1;
+        breaking.active = false;
+      }
+    } else {
+      breaking.active = false;
+    }
+  }
 }
 
-// Procedural Minecraft Dokuları Çizici
-function drawTexture(id, x, y, size) {
-  if(id === 0) return;
+// Procedural Dokular
+function drawTexture(id, x, y, size, targetCtx = ctx) {
+  if(!id || id === 0) return;
 
+  targetCtx.fillStyle = "#866043";
   if(id === 1) { // Çimen
-    ctx.fillStyle = "#866043"; ctx.fillRect(x, y, size, size); // Toprak
-    ctx.fillStyle = "#5c8e32"; ctx.fillRect(x, y, size, 10);  // Üst Yeşil
-    ctx.fillStyle = "#4c7828"; for(let i=0;i<size;i+=6) ctx.fillRect(x+i, y+8, 4, 4); // Çimen Deseni
+    targetCtx.fillRect(x, y, size, size);
+    targetCtx.fillStyle = "#5c8e32"; targetCtx.fillRect(x, y, size, 10);
   } else if(id === 2) { // Toprak
-    ctx.fillStyle = "#866043"; ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = "#5c3e26"; 
-    ctx.fillRect(x+4, y+6, 6, 6); ctx.fillRect(x+20, y+18, 8, 6); ctx.fillRect(x+10, y+26, 6, 6);
+    targetCtx.fillRect(x, y, size, size);
   } else if(id === 3) { // Taş
-    ctx.fillStyle = "#737373"; ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = "#525252";
-    ctx.fillRect(x+2, y+4, 10, 6); ctx.fillRect(x+18, y+12, 12, 8); ctx.fillRect(x+6, y+22, 14, 6);
+    targetCtx.fillStyle = "#737373"; targetCtx.fillRect(x, y, size, size);
   } else if(id === 4) { // Meşe Odunu
-    ctx.fillStyle = "#674d32"; ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = "#3e2d1c"; ctx.fillRect(x+6, y, 4, size); ctx.fillRect(x+22, y, 4, size);
+    targetCtx.fillStyle = "#674d32"; targetCtx.fillRect(x, y, size, size);
   } else if(id === 5) { // Yaprak
-    ctx.fillStyle = "#3a6821"; ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = "#284a15"; 
-    ctx.fillRect(x+2, y+2, 8, 8); ctx.fillRect(x+18, y+14, 10, 10); ctx.fillRect(x+6, y+22, 8, 8);
-  } else if(id === 6) { // Kömür Madeni
-    drawTexture(3, x, y, size);
-    ctx.fillStyle = "#1c1c1c";
-    ctx.fillRect(x+6, y+8, 8, 8); ctx.fillRect(x+20, y+16, 10, 8);
-  } else if(id === 7) { // Demir Madeni
-    drawTexture(3, x, y, size);
-    ctx.fillStyle = "#d8af93";
-    ctx.fillRect(x+8, y+6, 8, 6); ctx.fillRect(x+18, y+20, 8, 8);
-  } else if(id === 8) { // Taş Kazma
-    ctx.fillStyle = "#737373"; ctx.fillRect(x+6, y+4, 20, 6);
-    ctx.fillStyle = "#674d32"; ctx.fillRect(x+14, y+10, 4, 18);
+    targetCtx.fillStyle = "#3a6821"; targetCtx.fillRect(x, y, size, size);
+  } else if(id === 6) { // Kömür
+    drawTexture(3, x, y, size, targetCtx);
+    targetCtx.fillStyle = "#1c1c1c"; targetCtx.fillRect(x+8, y+8, 8, 8);
+  } else if(id === 7) { // Demir
+    drawTexture(3, x, y, size, targetCtx);
+    targetCtx.fillStyle = "#d8af93"; targetCtx.fillRect(x+8, y+8, 8, 8);
+  } else if(id === 8) { // Tahta
+    targetCtx.fillStyle = "#b08455"; targetCtx.fillRect(x, y, size, size);
+  } else if(id === 9) { // Çubuk
+    targetCtx.fillStyle = "#674d32"; targetCtx.fillRect(x+12, y+6, 6, 20);
+  } else if(id === 10 || id === 11) { // Kazma
+    targetCtx.fillStyle = id === 10 ? "#b08455" : "#737373";
+    targetCtx.fillRect(x+4, y+4, 24, 6);
+    targetCtx.fillStyle = "#674d32"; targetCtx.fillRect(x+13, y+10, 5, 18);
   }
 
-  if(id !== 8) {
-    ctx.strokeStyle = "rgba(0,0,0,0.15)";
-    ctx.strokeRect(x, y, size, size);
+  if(!B[id].isTool && !B[id].isItem) {
+    targetCtx.strokeStyle = "rgba(0,0,0,0.15)";
+    targetCtx.strokeRect(x, y, size, size);
   }
 }
 
 function drawSteve(x, y) {
-  // Bacaklar (Lacivert)
-  ctx.fillStyle = "#2b2b7a"; ctx.fillRect(x + 2, y + 32, 8, 22); ctx.fillRect(x + 12, y + 32, 8, 22);
-  // Gövde (Turkuaz Steve Tişörtü)
-  ctx.fillStyle = "#00a8a8"; ctx.fillRect(x + 2, y + 16, 18, 16);
-  // Kafa (Ten Rengi & Saç)
+  let legOffset = Math.sin(player.animFrame) * 6;
+  
+  // Sol / Sağ Bacak Animasyonu
+  ctx.fillStyle = "#2b2b7a"; 
+  ctx.fillRect(x + 3, y + 34, 7, 20 + legOffset);
+  ctx.fillRect(x + 12, y + 34, 7, 20 - legOffset);
+
+  // Gövde
+  ctx.fillStyle = "#00a8a8"; ctx.fillRect(x + 2, y + 16, 18, 18);
+
+  // Kafa
   ctx.fillStyle = "#cbb094"; ctx.fillRect(x + 3, y, 16, 16);
   ctx.fillStyle = "#4a2d18"; ctx.fillRect(x + 3, y, 16, 5); // Saç
-  ctx.fillStyle = "#2b2b7a"; ctx.fillRect(x + 12, y + 7, 3, 3); // Göz
+  ctx.fillStyle = "#2b2b7a"; ctx.fillRect(x + 13, y + 7, 3, 3); // Göz
 }
 
 function draw() {
   let camX = player.x - cv.width / 2;
   let camY = player.y - cv.height / 2;
 
-  // Minecraft Gökyüzü Gradient
+  // Kamera Sol Sınır Koruması
+  camX = Math.max(0, Math.min(MAP_W * T - cv.width, camX));
+
   ctx.fillStyle = "#78a7ff";
   ctx.fillRect(0, 0, cv.width, cv.height);
 
-  // Güneş
-  ctx.fillStyle = "#ffffa0";
-  ctx.fillRect(100 - camX * 0.05, 60, 50, 50);
-
-  // Bulutlar
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.fillRect(200 - camX * 0.1, 80, 160, 30);
-  ctx.fillRect(600 - camX * 0.1, 50, 220, 35);
-
-  // Blok Çizimi
+  // Bloklar
   let startX = Math.max(0, Math.floor(camX / T));
   let endX = Math.min(MAP_W, Math.ceil((camX + cv.width) / T));
   let startY = Math.max(0, Math.floor(camY / T));
@@ -208,9 +256,22 @@ function draw() {
     }
   }
 
-  // Steve Çizimi
-  drawSteve(player.x - camX, player.y - camY);
+  // Blok Kırma Efekti (Çatlak Animasyonu)
+  if(breaking.active) {
+    let bx = breaking.x * T - camX;
+    let by = breaking.y * T - camY;
+    let target = world[breaking.y][breaking.x];
+    let ratio = breaking.progress / B[target].hardness;
 
+    ctx.strokeStyle = `rgba(0,0,0,${0.3 + ratio * 0.6})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(bx + 4, by + 4); ctx.lineTo(bx + T - 4, by + T - 4);
+    ctx.moveTo(bx + T - 4, by + 4); ctx.lineTo(bx + 4, by + T - 4);
+    ctx.stroke();
+  }
+
+  drawSteve(player.x - camX, player.y - camY);
   renderBar();
 }
 
@@ -223,49 +284,73 @@ function renderBar() {
 
     let c = document.createElement("canvas");
     c.width = 32; c.height = 32;
-    let cx = c.getContext("2d");
-    
-    // Icon çizimi
-    let tempCtx = ctx;
-    window.ctx = cx;
-    drawTexture(id, 0, 0, 32);
-    window.ctx = tempCtx;
+    drawTexture(id, 0, 0, 32, c.getContext("2d"));
 
     d.appendChild(c);
-    if(id !== 8) d.innerHTML += `<b>${inv[id] || 0}</b>`;
+    if(!B[id].isTool) d.innerHTML += `<b>${inv[id] || 0}</b>`;
     h.appendChild(d);
   });
 }
 
+// Crafting Sistemi Mekaniği
+const recipes = [
+  { item: 8, count: 4, cost: { 4: 1 }, name: "Tahta (4x)" },
+  { item: 9, count: 4, cost: { 8: 2 }, name: "Çubuk (4x)" },
+  { item: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma" },
+  { item: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma" }
+];
+
+function toggleCrafting() {
+  let menu = document.getElementById("craft-menu");
+  let isVisible = menu.style.display === "block";
+  menu.style.display = isVisible ? "none" : "block";
+
+  if(!isVisible) {
+    let list = document.getElementById("recipes"); list.innerHTML = "";
+    recipes.forEach(r => {
+      let canCraft = Object.keys(r.cost).every(k => (inv[k] || 0) >= r.cost[k]);
+      let itemDiv = document.createElement("div");
+      itemDiv.className = "recipe-item" + (canCraft ? "" : " disabled");
+      itemDiv.innerHTML = `<span>${r.name}</span><b>${canCraft ? "ÜRET" : "Eksik"}</b>`;
+      itemDiv.onclick = () => {
+        if(canCraft) {
+          Object.keys(r.cost).forEach(k => inv[k] -= r.cost[k]);
+          inv[r.item] = (inv[r.item] || 0) + r.count;
+          toggleCrafting();
+        }
+      };
+      list.appendChild(itemDiv);
+    });
+  }
+}
+
+// Fare Kontrolleri
 cv.onmousedown = e => {
   let camX = player.x - cv.width / 2;
   let camY = player.y - cv.height / 2;
+  camX = Math.max(0, Math.min(MAP_W * T - cv.width, camX));
+
   let tx = Math.floor((e.clientX + camX) / T);
   let ty = Math.floor((e.clientY + camY) / T);
 
   let dist = Math.hypot(tx * T - player.x, ty * T - player.y);
   if(dist > T * 6) return;
 
-  let activeItem = slots[player.sel];
-
-  if(e.button === 0 && world[ty]?.[tx] !== 0) { // Sol Tık: Blok Kır
-    let targetBlock = world[ty][tx];
-    
-    // Taş ve Madenler için Kazma Gereksinimi
-    if(B[targetBlock].needsPick && activeItem !== 8) {
-      alert("Bu bloğu kırmak için eline Kazma (1 numaralı slot) almalısın!");
-      return;
-    }
-
-    world[ty][tx] = 0;
-    inv[targetBlock] = (inv[targetBlock] || 0) + 1;
-  } else if(e.button === 2) { // Sağ Tık: Blok Koy
-    if(activeItem !== 8 && (inv[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
+  if(e.button === 0 && world[ty]?.[tx] !== 0) { // Sol Tık Kırma
+    breaking.active = true;
+    breaking.x = tx;
+    breaking.y = ty;
+    breaking.progress = 0;
+  } else if(e.button === 2) { // Sağ Tık Koyma
+    let activeItem = slots[player.sel];
+    if(!B[activeItem].isTool && !B[activeItem].isItem && (inv[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
       world[ty][tx] = activeItem;
       inv[activeItem]--;
     }
   }
 };
+
+cv.onmouseup = () => breaking.active = false;
 cv.oncontextmenu = e => e.preventDefault();
 
 (function loop() {
