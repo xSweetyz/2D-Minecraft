@@ -3,35 +3,176 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2D Terraria Solo World</title>
+  <title>2D Terraria Revolution</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; user-select: none; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #111; font-family: 'Courier New', Courier, monospace; }
-    #game { display: block; width: 100vw; height: 100vh; }
-    #ui { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 15px; pointer-events: none; z-index: 10; }
-    
-    /* Terraria Style Hotbar */
-    #hotbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; background: rgba(30, 30, 30, 0.85); padding: 6px; border: 3px solid #5a4027; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); z-index: 10; }
-    .slot { width: 48px; height: 48px; border: 2px solid #3c2a1a; background: #2a1f15; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; border-radius: 2px; }
-    .slot.sel { border-color: #ffe100; background: #4a3725; box-shadow: inset 0 0 8px #ffe100; }
-    .slot canvas { width: 32px; height: 32px; image-rendering: pixelated; }
-    .slot b { position: absolute; bottom: 2px; right: 4px; font-size: 11px; color: #fff; text-shadow: 1px 1px 0 #000; }
-    
-    /* Terraria Crafting UI */
-    #craft-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2a1f15; border: 4px solid #5a4027; padding: 16px; width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); z-index: 20; color: #fff; }
-    #craft-menu h3 { margin-bottom: 12px; color: #ffe100; font-size: 18px; text-align: center; text-shadow: 1px 1px 0 #000; }
-    .recipe-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
-    .recipe-item { display: flex; align-items: center; justify-content: space-between; background: #3d2d1e; padding: 10px; border: 2px solid #5a4027; cursor: pointer; color: #fff; font-weight: bold; }
-    .recipe-item:hover { background: #523d29; }
-    .recipe-item.disabled { opacity: 0.4; cursor: not-allowed; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      touch-action: none;
+      user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #090a0f;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #game {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    /* UI ve Göstergeler */
+    #ui {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      color: #fff;
+      text-shadow: 2px 2px 4px #000;
+      font-weight: bold;
+      font-size: 16px;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .status-bar {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      width: fit-content;
+    }
+    .controls-hint {
+      font-size: 13px;
+      color: #ddd;
+      font-weight: normal;
+    }
+    /* Hotbar Slotları */
+    #hotbar-container {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      background: rgba(20, 15, 10, 0.9);
+      padding: 8px;
+      border: 3px solid #63432b;
+      border-radius: 8px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.8);
+      z-index: 10;
+    }
+    .slot {
+      width: 52px;
+      height: 52px;
+      border: 2px solid #3d281a;
+      background: #1c140e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.1s ease;
+    }
+    .slot.sel {
+      border-color: #ffd700;
+      background: #3b281c;
+      box-shadow: 0 0 10px #ffd700;
+      transform: translateY(-2px);
+    }
+    .slot canvas {
+      width: 36px;
+      height: 36px;
+      image-rendering: pixelated;
+    }
+    .slot b {
+      position: absolute;
+      bottom: 2px;
+      right: 5px;
+      font-size: 12px;
+      color: #fff;
+      text-shadow: 1px 1px 2px #000;
+    }
+    .slot span.key-num {
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      font-size: 10px;
+      color: #888;
+    }
+    /* Crafting Menüsü */
+    #craft-menu {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #1a120b;
+      border: 4px solid #543824;
+      border-radius: 8px;
+      padding: 20px;
+      width: 380px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.9);
+      z-index: 20;
+      color: #fff;
+    }
+    #craft-menu h3 {
+      margin-bottom: 14px;
+      color: #ffd700;
+      font-size: 20px;
+      text-align: center;
+      text-shadow: 1px 1px 2px #000;
+      border-bottom: 2px solid #3d281a;
+      padding-bottom: 8px;
+    }
+    .recipe-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .recipe-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #2b1d12;
+      padding: 12px;
+      border: 2px solid #422d1d;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    .recipe-item:hover {
+      background: #422d1d;
+    }
+    .recipe-item.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .recipe-btn {
+      background: #ffd700;
+      color: #000;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
 
   <canvas id="game"></canvas>
+  
   <div id="ui">
-    <div>❤️ 100/100 | 🛡️ Terraria World</div>
-    <div style="font-size:12px; margin-top:4px; opacity:0.9;">[A/D] Yürü | [W/Space] Zıpla | [E] Üretim (Crafting) | [Sol Tık] Kır | [Sağ Tık] Koy</div>
+    <div class="status-bar">❤️ 100 / 100 | 🛡️ Terraria World</div>
+    <div class="controls-hint">[A/D] Yürü | [W/Space] Zıpla | [E] Üretim | [Sol Tık] Kır | [Sağ Tık] Koy</div>
   </div>
 
   <div id="craft-menu">
@@ -39,290 +180,389 @@
     <div class="recipe-list" id="recipes"></div>
   </div>
 
-  <div id="hotbar"></div>
+  <div id="hotbar-container"></div>
 
 <script>
-const cv = document.getElementById("game"), ctx = cv.getContext("2d");
+// ==========================================
+// 1. GENEL AYARLAR VE CANVAS KURULUMU
+// ==========================================
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
 
-function resize(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
-window.addEventListener("resize", resize); resize();
+function handleResize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", handleResize);
+handleResize();
 
-const T = 32; // Blok Boyutu
-const MAP_W = 400, MAP_H = 120; // Devasa Harita
+const TILE_SIZE = 32;
+const MAP_WIDTH = 400;
+const MAP_HEIGHT = 130;
 
-// Terraria Blok Tanımları
-const B = {
-  0: { name: "Hava", solid: 0 },
-  1: { name: "Çimen Toprak", solid: 1, time: 60 },
-  2: { name: "Toprak", solid: 1, time: 80 },
-  3: { name: "Taş", solid: 1, time: 240, needPick: true },
-  4: { name: "Ağaç Gövdesi", solid: 1, time: 180 },
-  5: { name: "Ağaç Yaprağı", solid: 0, time: 20 },
-  6: { name: "Kömür Cevheri", solid: 1, time: 300, needPick: true },
-  7: { name: "Bakır/Demir Cevheri", solid: 1, time: 360, needPick: true },
-  8: { name: "Ahşap Blok", solid: 1, time: 120 },
-  9: { name: "Ahşap Çubuk", solid: 0, isItem: true },
-  10:{ name: "Tahta Kazma", solid: 0, isTool: true, speed: 3 },
-  11:{ name: "Taş Kazma", solid: 0, isTool: true, speed: 6 }
+// ==========================================
+// 2. BLOK VE EŞYA VERİ VERİTABANI
+// ==========================================
+const BLOCKS = {
+  0: { name: "Hava", solid: false },
+  1: { name: "Çimenli Toprak", solid: true, time: 60 },
+  2: { name: "Toprak", solid: true, time: 70 },
+  3: { name: "Taş", solid: true, time: 260, needTool: true },
+  4: { name: "Ağaç Gövdesi", solid: true, time: 160 },
+  5: { name: "Ağaç Yaprağı", solid: false, time: 25 },
+  6: { name: "Kömür Cevheri", solid: true, time: 320, needTool: true },
+  7: { name: "Bakır Cevheri", solid: true, time: 380, needTool: true },
+  8: { name: "Ahşap Blok", solid: true, time: 100 },
+  9: { name: "Ahşap Çubuk", solid: false, isItem: true },
+  10: { name: "Tahta Kazma", solid: false, isTool: true, speed: 3.5 },
+  11: { name: "Taş Kazma", solid: false, isTool: true, speed: 7.0 }
 };
 
-// Dünya Oluşturma (Terraria Tarzı Yüzey ve Mağaralar)
-let world = [];
-let surfaceY = 35;
+// ==========================================
+// 3. DÜNYA VE HARİTA JENERATÖRÜ
+// ==========================================
+let worldMap = [];
+const surfaceBaseY = 40;
 
-for(let y = 0; y < MAP_H; y++) {
-  world[y] = [];
-  for(let x = 0; x < MAP_W; x++) {
-    // Hafif dalgalı arazi
-    let currentSurface = surfaceY + Math.floor(Math.sin(x * 0.1) * 3);
-    
-    if(y < currentSurface) world[y][x] = 0;
-    else if(y === currentSurface) world[y][x] = 1;
-    else if(y < currentSurface + 8) world[y][x] = 2;
-    else {
-      let r = Math.random();
-      if(r < 0.05) world[y][x] = 6;
-      else if(r < 0.09) world[y][x] = 7;
-      else world[y][x] = 3;
+function generateWorld() {
+  worldMap = [];
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    worldMap[y] = [];
+    for (let x = 0; x < MAP_WIDTH; x++) {
+      // Yüzey için sinüs dalgası
+      let surfaceY = surfaceBaseY + Math.floor(Math.sin(x * 0.08) * 5 + Math.cos(x * 0.03) * 3);
+
+      if (y < surfaceY) {
+        worldMap[y][x] = 0; // Hava
+      } else if (y === surfaceY) {
+        worldMap[y][x] = 1; // Çimen
+      } else if (y < surfaceY + 10) {
+        worldMap[y][x] = 2; // Toprak
+      } else {
+        let rand = Math.random();
+        if (rand < 0.04) worldMap[y][x] = 6;      // Kömür
+        else if (rand < 0.07) worldMap[y][x] = 7; // Bakır
+        else worldMap[y][x] = 3;                  // Taş
+      }
     }
   }
-}
 
-// Ağaçlar
-for(let x = 10; x < MAP_W - 10; x += 8) {
-  if(Math.random() > 0.3) {
-    let currentSurface = surfaceY + Math.floor(Math.sin(x * 0.1) * 3);
-    for(let h = 1; h <= 5; h++) world[currentSurface - h][x] = 4;
-    for(let lx = -2; lx <= 2; lx++) {
-      for(let ly = -8; ly <= -5; ly++) {
-        if(world[currentSurface + ly]?.[x + lx] === 0) world[currentSurface + ly][x + lx] = 5;
+  // Ağaçların Oluşumu
+  for (let x = 12; x < MAP_WIDTH - 12; x += Math.floor(Math.random() * 6) + 6) {
+    if (Math.random() > 0.35) {
+      let surfaceY = surfaceBaseY + Math.floor(Math.sin(x * 0.08) * 5 + Math.cos(x * 0.03) * 3);
+      let treeHeight = Math.floor(Math.random() * 3) + 4;
+
+      // Gövde
+      for (let h = 1; h <= treeHeight; h++) {
+        if (surfaceY - h >= 0) worldMap[surfaceY - h][x] = 4;
+      }
+      // Yapraklar
+      let leafTop = surfaceY - treeHeight;
+      for (let lx = -2; lx <= 2; lx++) {
+        for (let ly = -3; ly <= -1; ly++) {
+          let targetX = x + lx;
+          let targetY = leafTop + ly;
+          if (targetX >= 0 && targetX < MAP_WIDTH && targetY >= 0) {
+            if (worldMap[targetY][targetX] === 0) {
+              worldMap[targetY][targetX] = 5;
+            }
+          }
+        }
       }
     }
   }
 }
+generateWorld();
 
+// ==========================================
+// 4. OYUNCU VE ENVANTER
+// ==========================================
 let player = {
-  x: 20 * T, y: (surfaceY - 3) * T, w: 20, h: 48,
-  vx: 0, vy: 0, grounded: false,
-  sel: 0, animFrame: 0, isMoving: false
+  x: 25 * TILE_SIZE,
+  y: (surfaceBaseY - 5) * TILE_SIZE,
+  width: 22,
+  height: 50,
+  vx: 0,
+  vy: 0,
+  isGrounded: false,
+  selectedSlot: 0,
+  walkFrame: 0,
+  isMoving: false
 };
 
-// Sıfırdan Başlangıç Envanteri (KAZMA VERİLMİYOR!)
-const inv = { 1: 0, 2: 0, 3: 0, 4: 0, 8: 0, 9: 0, 10: 0, 11: 0 };
-const slots = [1, 2, 3, 4, 8, 9, 10, 11]; // Slotlar
-const keys = {};
+// Başlangıç Envanteri (Kazmasız!)
+const inventory = { 1: 0, 2: 0, 3: 0, 4: 0, 8: 0, 9: 0, 10: 0, 11: 0 };
+const hotbarSlots = [1, 2, 3, 4, 8, 9, 10, 11];
+const keyStates = {};
 
-let breaking = { active: false, x: -1, y: -1, progress: 0 };
+let miningState = {
+  active: false,
+  x: -1,
+  y: -1,
+  progress: 0
+};
 
-addEventListener("keydown", e => {
-  keys[e.key.toLowerCase()] = true;
-  if("12345678".includes(e.key)) player.sel = +e.key - 1;
-  if(e.key.toLowerCase() === "e") toggleCrafting();
+// Tuş Dinleyicileri
+window.addEventListener("keydown", e => {
+  const k = e.key.toLowerCase();
+  keyStates[k] = true;
+  if ("12345678".includes(e.key)) {
+    player.selectedSlot = parseInt(e.key) - 1;
+  }
+  if (k === "e") toggleCraftingMenu();
 });
-addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-function isSolid(px, py) {
-  let bx = Math.floor(px / T), by = Math.floor(py / T);
-  if(bx < 0 || bx >= MAP_W || by < 0 || by >= MAP_H) return 1;
-  return B[world[by][bx]].solid;
+window.addEventListener("keyup", e => {
+  keyStates[e.key.toLowerCase()] = false;
+});
+
+// ==========================================
+// 5. FİZİK VE GÜNCELLEME DÖNGÜSÜ
+// ==========================================
+function isBlockSolid(pixelX, pixelY) {
+  let tileX = Math.floor(pixelX / TILE_SIZE);
+  let tileY = Math.floor(pixelY / TILE_SIZE);
+  if (tileX < 0 || tileX >= MAP_WIDTH || tileY < 0 || tileY >= MAP_HEIGHT) return true;
+  return BLOCKS[worldMap[tileY][tileX]].solid;
 }
 
-function update() {
+function updatePhysics() {
   player.isMoving = false;
 
-  if(keys["a"] || keys["arrowleft"]) { player.vx = -4.0; player.isMoving = true; }
-  else if(keys["d"] || keys["arrowright"]) { player.vx = 4.0; player.isMoving = true; }
-  else player.vx *= 0.65;
-
-  if((keys["w"] || keys[" "] || keys["arrowup"]) && player.grounded) {
-    player.vy = -11.0;
-    player.grounded = false;
+  // Yatay Hareket
+  if (keyStates["a"] || keyStates["arrowleft"]) {
+    player.vx = -4.2;
+    player.isMoving = true;
+  } else if (keyStates["d"] || keyStates["arrowright"]) {
+    player.vx = 4.2;
+    player.isMoving = true;
+  } else {
+    player.vx *= 0.65;
   }
 
-  player.vy += 0.55; // Fizik / Yerçekimi
+  // Zıplama
+  if ((keyStates["w"] || keyStates[" "] || keyStates["arrowup"]) && player.isGrounded) {
+    player.vy = -11.5;
+    player.isGrounded = false;
+  }
 
-  if(player.isMoving && player.grounded) player.animFrame += 0.25;
-  else player.animFrame = 0;
+  // Yerçekimi
+  player.vy += 0.58;
 
-  // Çarpışma Testi
+  // Yürüme Animasyonu Adımı
+  if (player.isMoving && player.isGrounded) player.walkFrame += 0.25;
+  else player.walkFrame = 0;
+
+  // Yatay Çarpışma Testi
   player.x += player.vx;
-  if(player.vx > 0 && (isSolid(player.x + player.w, player.y) || isSolid(player.x + player.w, player.y + player.h - 2))) {
-    player.x = Math.floor((player.x + player.w) / T) * T - player.w - 0.1;
+  if (player.vx > 0 && (isBlockSolid(player.x + player.width, player.y) || isBlockSolid(player.x + player.width, player.y + player.height - 2))) {
+    player.x = Math.floor((player.x + player.width) / TILE_SIZE) * TILE_SIZE - player.width - 0.1;
   }
-  if(player.vx < 0 && (isSolid(player.x, player.y) || isSolid(player.x, player.y + player.h - 2))) {
-    player.x = Math.floor(player.x / T + 1) * T + 0.1;
+  if (player.vx < 0 && (isBlockSolid(player.x, player.y) || isBlockSolid(player.x, player.y + player.height - 2))) {
+    player.x = Math.floor(player.x / TILE_SIZE + 1) * TILE_SIZE + 0.1;
   }
 
+  // Dikey Çarpışma Testi
   player.y += player.vy;
-  player.grounded = false;
-  if(player.vy > 0 && (isSolid(player.x + 2, player.y + player.h) || isSolid(player.x + player.w - 2, player.y + player.h))) {
-    player.y = Math.floor((player.y + player.h) / T) * T - player.h;
+  player.isGrounded = false;
+  if (player.vy > 0 && (isBlockSolid(player.x + 2, player.y + player.height) || isBlockSolid(player.x + player.width - 2, player.y + player.height))) {
+    player.y = Math.floor((player.y + player.height) / TILE_SIZE) * TILE_SIZE - player.height;
     player.vy = 0;
-    player.grounded = true;
+    player.isGrounded = true;
   }
 
-  // Kırma İşlemleri
-  if(breaking.active) {
-    let tool = slots[player.sel];
-    let speed = B[tool]?.speed || 1;
-    let target = world[breaking.y]?.[breaking.x];
+  // Madencilik/Kırma Mekaniği
+  if (miningState.active) {
+    let currentToolId = hotbarSlots[player.selectedSlot];
+    let toolSpeed = BLOCKS[currentToolId]?.speed || 1.0;
+    let targetBlockId = worldMap[miningState.y]?.[miningState.x];
 
-    if(target && target !== 0) {
-      if(B[target].needPick && !B[tool]?.isTool) {
-        breaking.progress = 0; // Kazma yoksa taş kırılamaz
+    if (targetBlockId && targetBlockId !== 0) {
+      if (BLOCKS[targetBlockId].needTool && !BLOCKS[currentToolId]?.isTool) {
+        miningState.progress = 0; // Kazma olmadan kırılmaz
       } else {
-        breaking.progress += speed;
-        if(breaking.progress >= B[target].time) {
-          world[breaking.y][breaking.x] = 0;
-          inv[target] = (inv[target] || 0) + 1;
-          breaking.active = false;
+        miningState.progress += toolSpeed;
+        if (miningState.progress >= BLOCKS[targetBlockId].time) {
+          worldMap[miningState.y][miningState.x] = 0;
+          inventory[targetBlockId] = (inventory[targetBlockId] || 0) + 1;
+          miningState.active = false;
         }
       }
     } else {
-      breaking.active = false;
+      miningState.active = false;
     }
   }
 }
 
-// Terraria Piksel Dokuları Render Fonksiyonu
-function drawTexture(id, x, y, size, targetCtx = ctx) {
-  if(!id || id === 0) return;
+// ==========================================
+// 6. GÖRSEL RENDER VE ÇİZİM
+// ==========================================
+function renderTexture(id, drawX, drawY, size, targetCtx = ctx) {
+  if (!id || id === 0) return;
 
-  if(id === 1) { // Çimenli Toprak
-    targetCtx.fillStyle = "#5d3e23"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#488820"; targetCtx.fillRect(x, y, size, 8);
-    targetCtx.fillStyle = "#386b18"; targetCtx.fillRect(x+2, y+6, 6, 4); targetCtx.fillRect(x+16, y+6, 8, 4);
-  } else if(id === 2) { // Toprak
-    targetCtx.fillStyle = "#5d3e23"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#3e2815"; targetCtx.fillRect(x+4, y+4, 6, 6); targetCtx.fillRect(x+18, y+16, 8, 6);
-  } else if(id === 3) { // Taş
-    targetCtx.fillStyle = "#555563"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#3a3a47"; targetCtx.fillRect(x+2, y+4, 10, 6); targetCtx.fillRect(x+16, y+14, 12, 8);
-  } else if(id === 4) { // Ağaç
-    targetCtx.fillStyle = "#4a2f18"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#2e1c0d"; targetCtx.fillRect(x+4, y, 4, size); targetCtx.fillRect(x+20, y, 4, size);
-  } else if(id === 5) { // Yaprak
-    targetCtx.fillStyle = "#2e6818"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#1e480e"; targetCtx.fillRect(x+2, y+2, 8, 8); targetCtx.fillRect(x+16, y+14, 10, 10);
-  } else if(id === 6) { // Kömür
-    drawTexture(3, x, y, size, targetCtx);
-    targetCtx.fillStyle = "#111115"; targetCtx.fillRect(x+6, y+6, 8, 8); targetCtx.fillRect(x+18, y+18, 8, 8);
-  } else if(id === 7) { // Bakır/Demir
-    drawTexture(3, x, y, size, targetCtx);
-    targetCtx.fillStyle = "#b86230"; targetCtx.fillRect(x+6, y+6, 8, 8); targetCtx.fillRect(x+18, y+18, 8, 8);
-  } else if(id === 8) { // Ahşap
-    targetCtx.fillStyle = "#805229"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#523318"; targetCtx.fillRect(x, y+6, size, 2); targetCtx.fillRect(x, y+20, size, 2);
-  } else if(id === 9) { // Çubuk
-    targetCtx.fillStyle = "#4a2f18"; targetCtx.fillRect(x+12, y+4, 6, 22);
-  } else if(id === 10 || id === 11) { // Kazmalar
-    targetCtx.fillStyle = id === 10 ? "#805229" : "#555563";
-    targetCtx.fillRect(x+2, y+2, 26, 6);
-    targetCtx.fillStyle = "#4a2f18"; targetCtx.fillRect(x+12, y+8, 5, 20);
+  if (id === 1) { // Çimen
+    targetCtx.fillStyle = "#5c3d24"; targetCtx.fillRect(drawX, drawY, size, size);
+    targetCtx.fillStyle = "#478c23"; targetCtx.fillRect(drawX, drawY, size, 8);
+    targetCtx.fillStyle = "#336618";
+    targetCtx.fillRect(drawX + 2, drawY + 6, 6, 4);
+    targetCtx.fillRect(drawX + 18, drawY + 6, 8, 4);
+  } else if (id === 2) { // Toprak
+    targetCtx.fillStyle = "#5c3d24"; targetCtx.fillRect(drawX, drawY, size, size);
+    targetCtx.fillStyle = "#3b2616";
+    targetCtx.fillRect(drawX + 4, drawY + 4, 6, 6);
+    targetCtx.fillRect(drawX + 18, drawY + 18, 8, 6);
+  } else if (id === 3) { // Taş
+    targetCtx.fillStyle = "#585866"; targetCtx.fillRect(drawX, drawY, size, size);
+    targetCtx.fillStyle = "#3a3a45";
+    targetCtx.fillRect(drawX + 2, drawY + 4, 10, 6);
+    targetCtx.fillRect(drawX + 16, drawY + 16, 12, 8);
+  } else if (id === 4) { // Ağaç Gövdesi
+    targetCtx.fillStyle = "#4d3219"; targetCtx.fillRect(drawX, drawY, size, size);
+    targetCtx.fillStyle = "#2d1d0f";
+    targetCtx.fillRect(drawX + 4, drawY, 4, size);
+    targetCtx.fillRect(drawX + 22, drawY, 4, size);
+  } else if (id === 5) { // Yaprak
+    targetCtx.fillStyle = "#2d691b"; targetCtx.fillRect(drawX, drawY, size, size);
+    targetCtx.fillStyle = "#1e4712";
+    targetCtx.fillRect(drawX + 2, drawY + 2, 8, 8);
+    targetCtx.fillRect(drawX + 16, drawY + 14, 10, 10);
+  } else if (id === 6) { // Kömür Cevheri
+    renderTexture(3, drawX, drawY, size, targetCtx);
+    targetCtx.fillStyle = "#141417";
+    targetCtx.fillRect(drawX + 6, drawY + 6, 8, 8);
+    targetCtx.fillRect(drawX + 18, drawY + 18, 8, 8);
+  } else if (id === 7) { // Bakır Cevheri
+    renderTexture(3, drawX, drawY, size, targetCtx);
+    targetCtx.fillStyle = "#c26d38";
+    targetCtx.fillRect(drawX + 6, drawY + 6, 8, 8);
+    targetCtx.fillRect(drawX + 18, drawY + 18, 8, 8);
+  } else if (id === 8) { // Ahşap Blok
+    targetCtx.fillStyle = "#87572b"; targetCtx.fillRect(drawX, drawY, size, size);
+    targetCtx.fillStyle = "#593819";
+    targetCtx.fillRect(drawX, drawY + 6, size, 2);
+    targetCtx.fillRect(drawX, drawY + 22, size, 2);
+  } else if (id === 9) { // Çubuk
+    targetCtx.fillStyle = "#4d3219"; targetCtx.fillRect(drawX + 13, drawY + 4, 6, 24);
+  } else if (id === 10 || id === 11) { // Kazmalar
+    targetCtx.fillStyle = id === 10 ? "#87572b" : "#585866";
+    targetCtx.fillRect(drawX + 2, drawY + 2, 28, 6);
+    targetCtx.fillStyle = "#4d3219";
+    targetCtx.fillRect(drawX + 13, drawY + 8, 6, 20);
   }
 
-  if(!B[id].isTool && !B[id].isItem) {
-    targetCtx.strokeStyle = "rgba(0,0,0,0.25)";
-    targetCtx.strokeRect(x, y, size, size);
+  // Izgara Çizgisi
+  if (!BLOCKS[id].isTool && !BLOCKS[id].isItem) {
+    targetCtx.strokeStyle = "rgba(0, 0, 0, 0.2)";
+    targetCtx.strokeRect(drawX, drawY, size, size);
   }
 }
 
-// Terraria Karakter Çizimi
-function drawTerrariaPlayer(x, y) {
-  let anim = Math.sin(player.animFrame) * 6;
-  
-  // Bacaklar
-  ctx.fillStyle = "#223859"; 
-  ctx.fillRect(x + 2, y + 30, 6, 18 + anim);
-  ctx.fillRect(x + 11, y + 30, 6, 18 - anim);
+function renderPlayer(screenX, screenY) {
+  let animOffset = Math.sin(player.walkFrame) * 6;
 
-  // Gövde (Kırmızı Terraria Zırhı/Kıyafeti)
-  ctx.fillStyle = "#a82e2e"; ctx.fillRect(x + 2, y + 14, 15, 16);
+  // Bacaklar
+  ctx.fillStyle = "#1e2a3a";
+  ctx.fillRect(screenX + 3, screenY + 32, 6, 18 + animOffset);
+  ctx.fillRect(screenX + 12, screenY + 32, 6, 18 - animOffset);
+
+  // Gövde Zırhı
+  ctx.fillStyle = "#9e2b2b";
+  ctx.fillRect(screenX + 2, screenY + 14, 17, 18);
 
   // Kollar
-  ctx.fillStyle = "#dca078"; 
-  ctx.fillRect(x - 3, y + 14 - anim, 4, 14);
-  ctx.fillRect(x + 18, y + 14 + anim, 4, 14);
+  ctx.fillStyle = "#d49b74";
+  ctx.fillRect(screenX - 3, screenY + 14 - animOffset, 5, 14);
+  ctx.fillRect(screenX + 19, screenY + 14 + animOffset, 5, 14);
 
-  // Kafa
-  ctx.fillStyle = "#dca078"; ctx.fillRect(x + 2, y, 15, 14);
-  ctx.fillStyle = "#59361a"; ctx.fillRect(x + 2, y, 15, 4); // Saç
-  ctx.fillStyle = "#222"; ctx.fillRect(x + 12, y + 5, 3, 3); // Göz
+  // Kafa ve Yüz
+  ctx.fillStyle = "#d49b74"; ctx.fillRect(screenX + 3, screenY, 15, 14);
+  ctx.fillStyle = "#4a2e18"; ctx.fillRect(screenX + 3, screenY, 15, 4); // Saç
+  ctx.fillStyle = "#111"; ctx.fillRect(screenX + 13, screenY + 5, 3, 3); // Göz
 }
 
-function draw() {
-  let camX = player.x - cv.width / 2;
-  let camY = player.y - cv.height / 2;
+function renderGame() {
+  // Kamera Takip Hesabı
+  let camX = player.x - canvas.width / 2;
+  let camY = player.y - canvas.height / 2;
 
-  camX = Math.max(0, Math.min(MAP_W * T - cv.width, camX));
-  camY = Math.max(0, Math.min(MAP_H * T - cv.height, camY));
+  camX = Math.max(0, Math.min(MAP_WIDTH * TILE_SIZE - canvas.width, camX));
+  camY = Math.max(0, Math.min(MAP_HEIGHT * TILE_SIZE - canvas.height, camY));
 
-  // Derinliğe Göre Değişen Arkaplan (Gökyüzü -> Mağara)
-  let depthRatio = player.y / (MAP_H * T);
-  if(depthRatio < 0.35) ctx.fillStyle = "#639bff"; // Gökyüzü
-  else ctx.fillStyle = "#181310"; // Terraria Derin Mağara Duvarı
-  
-  ctx.fillRect(0, 0, cv.width, cv.height);
+  // Arka Plan Dinamik Rengi
+  let depth = player.y / (MAP_HEIGHT * TILE_SIZE);
+  if (depth < 0.32) ctx.fillStyle = "#5c94fc"; // Gökyüzü
+  else ctx.fillStyle = "#120e0b"; // Derin Mağara
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  let startX = Math.max(0, Math.floor(camX / T));
-  let endX = Math.min(MAP_W, Math.ceil((camX + cv.width) / T));
-  let startY = Math.max(0, Math.floor(camY / T));
-  let endY = Math.min(MAP_H, Math.ceil((camY + cv.height) / T));
+  let startTileX = Math.max(0, Math.floor(camX / TILE_SIZE));
+  let endTileX = Math.min(MAP_WIDTH, Math.ceil((camX + canvas.width) / TILE_SIZE));
+  let startTileY = Math.max(0, Math.floor(camY / TILE_SIZE));
+  let endTileY = Math.min(MAP_HEIGHT, Math.ceil((camY + canvas.height) / TILE_SIZE));
 
-  for(let y = startY; y < endY; y++) {
-    for(let x = startX; x < endX; x++) {
-      let tile = world[y][x];
-      if(tile !== 0) {
-        drawTexture(tile, x * T - camX, y * T - camY, T);
+  // Dünyayı Çiz
+  for (let y = startTileY; y < endTileY; y++) {
+    for (let x = startTileX; x < endTileX; x++) {
+      let tileId = worldMap[y][x];
+      if (tileId !== 0) {
+        renderTexture(tileId, x * TILE_SIZE - camX, y * TILE_SIZE - camY, TILE_SIZE);
       }
     }
   }
 
-  // Çatlak Animasyonu
-  if(breaking.active) {
-    let bx = breaking.x * T - camX;
-    let by = breaking.y * T - camY;
-    let target = world[breaking.y][breaking.x];
-    let ratio = breaking.progress / B[target].time;
+  // Kırılma Animasyonu Efeği
+  if (miningState.active) {
+    let crackX = miningState.x * TILE_SIZE - camX;
+    let crackY = miningState.y * TILE_SIZE - camY;
+    let targetId = worldMap[miningState.y][miningState.x];
+    let ratio = miningState.progress / BLOCKS[targetId].time;
 
-    ctx.strokeStyle = "#000";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    if(ratio > 0.25) { ctx.moveTo(bx+4, by+4); ctx.lineTo(bx+28, by+28); }
-    if(ratio > 0.50) { ctx.moveTo(bx+28, by+4); ctx.lineTo(bx+4, by+28); }
-    if(ratio > 0.75) { ctx.moveTo(bx+16, by+2); ctx.lineTo(bx+16, by+30); }
+    if (ratio > 0.2) { ctx.moveTo(crackX + 4, crackY + 4); ctx.lineTo(crackX + 28, crackY + 28); }
+    if (ratio > 0.4) { ctx.moveTo(crackX + 28, crackY + 4); ctx.lineTo(crackX + 4, crackY + 28); }
+    if (ratio > 0.7) { ctx.moveTo(crackX + 16, crackY + 2); ctx.lineTo(crackX + 16, crackY + 30); }
     ctx.stroke();
   }
 
-  drawTerrariaPlayer(player.x - camX, player.y - camY);
-  renderBar();
+  // Karakteri Çiz
+  renderPlayer(player.x - camX, player.y - camY);
+
+  // Hotbar UI Güncelle
+  renderHotbarUI();
 }
 
-// Hotbar Slotlarını Kesin Çizen Yapı
-function renderBar() {
-  let h = document.getElementById("hotbar"); 
-  h.innerHTML = "";
-  slots.forEach((id, i) => {
-    let d = document.createElement("div");
-    d.className = "slot" + (i === player.sel ? " sel" : "");
-    d.onclick = () => player.sel = i;
+// ==========================================
+// 7. HOTBAR VE CRAFTING SİSTEMİ
+// ==========================================
+function renderHotbarUI() {
+  const container = document.getElementById("hotbar-container");
+  container.innerHTML = "";
 
-    let c = document.createElement("canvas");
-    c.width = 32; c.height = 32;
-    let cCtx = c.getContext("2d");
-    cCtx.imageSmoothingEnabled = false;
-    
-    // Slotun içine dokuyu anında çiz
-    drawTexture(id, 0, 0, 32, cCtx);
+  hotbarSlots.forEach((id, index) => {
+    let slotDiv = document.createElement("div");
+    slotDiv.className = "slot" + (index === player.selectedSlot ? " sel" : "");
+    slotDiv.onclick = () => player.selectedSlot = index;
 
-    d.appendChild(c);
-    if(!B[id].isTool) d.innerHTML += `<b>${inv[id] || 0}</b>`;
-    h.appendChild(d);
+    let slotCanvas = document.createElement("canvas");
+    slotCanvas.width = 32;
+    slotCanvas.height = 32;
+    let slotCtx = slotCanvas.getContext("2d");
+    slotCtx.imageSmoothingEnabled = false;
+
+    renderTexture(id, 0, 0, 32, slotCtx);
+
+    slotDiv.appendChild(slotCanvas);
+    slotDiv.innerHTML += `<span class="key-num">${index + 1}</span>`;
+    if (!BLOCKS[id].isTool) {
+      slotDiv.innerHTML += `<b>${inventory[id] || 0}</b>`;
+    }
+    container.appendChild(slotDiv);
   });
 }
 
-// Terraria Crafting Mekaniği
 const recipes = [
   { item: 8, count: 4, cost: { 4: 1 }, name: "Ahşap Blok (4x)" },
   { item: 9, count: 4, cost: { 8: 2 }, name: "Ahşap Çubuk (4x)" },
@@ -330,23 +570,24 @@ const recipes = [
   { item: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma" }
 ];
 
-function toggleCrafting() {
+function toggleCraftingMenu() {
   let menu = document.getElementById("craft-menu");
   let isVisible = menu.style.display === "block";
   menu.style.display = isVisible ? "none" : "block";
 
-  if(!isVisible) {
-    let list = document.getElementById("recipes"); list.innerHTML = "";
+  if (!isVisible) {
+    let list = document.getElementById("recipes");
+    list.innerHTML = "";
     recipes.forEach(r => {
-      let canCraft = Object.keys(r.cost).every(k => (inv[k] || 0) >= r.cost[k]);
+      let canCraft = Object.keys(r.cost).every(k => (inventory[k] || 0) >= r.cost[k]);
       let itemDiv = document.createElement("div");
       itemDiv.className = "recipe-item" + (canCraft ? "" : " disabled");
-      itemDiv.innerHTML = `<span>${r.name}</span><b>${canCraft ? "CRAFT" : "Eksik"}</b>`;
+      itemDiv.innerHTML = `<span>${r.name}</span><span class="recipe-btn">${canCraft ? "ÜRET" : "Eksik Malzeme"}</span>`;
       itemDiv.onclick = () => {
-        if(canCraft) {
-          Object.keys(r.cost).forEach(k => inv[k] -= r.cost[k]);
-          inv[r.item] = (inv[r.item] || 0) + r.count;
-          toggleCrafting();
+        if (canCraft) {
+          Object.keys(r.cost).forEach(k => inventory[k] -= r.cost[k]);
+          inventory[r.item] = (inventory[r.item] || 0) + r.count;
+          toggleCraftingMenu();
         }
       };
       list.appendChild(itemDiv);
@@ -354,41 +595,47 @@ function toggleCrafting() {
   }
 }
 
-// Fare Kontrolleri
-cv.onmousedown = e => {
-  let camX = player.x - cv.width / 2;
-  let camY = player.y - cv.height / 2;
-  camX = Math.max(0, Math.min(MAP_W * T - cv.width, camX));
-  camY = Math.max(0, Math.min(MAP_H * T - cv.height, camY));
+// ==========================================
+// 8. FARE VE ETKİLEŞİM KONTROLLERİ
+// ==========================================
+canvas.onmousedown = e => {
+  let camX = player.x - canvas.width / 2;
+  let camY = player.y - canvas.height / 2;
+  camX = Math.max(0, Math.min(MAP_WIDTH * TILE_SIZE - canvas.width, camX));
+  camY = Math.max(0, Math.min(MAP_HEIGHT * TILE_SIZE - canvas.height, camY));
 
-  let tx = Math.floor((e.clientX + camX) / T);
-  let ty = Math.floor((e.clientY + camY) / T);
+  let tileX = Math.floor((e.clientX + camX) / TILE_SIZE);
+  let tileY = Math.floor((e.clientY + camY) / TILE_SIZE);
 
-  let dist = Math.hypot(tx * T - player.x, ty * T - player.y);
-  if(dist > T * 7) return;
+  let dist = Math.hypot(tileX * TILE_SIZE - player.x, tileY * TILE_SIZE - player.y);
+  if (dist > TILE_SIZE * 7) return; // Erişim mesafesi sınırı
 
-  if(e.button === 0 && world[ty]?.[tx] !== 0) {
-    breaking.active = true;
-    breaking.x = tx;
-    breaking.y = ty;
-    breaking.progress = 0;
-  } else if(e.button === 2) {
-    let activeItem = slots[player.sel];
-    if(!B[activeItem].isTool && !B[activeItem].isItem && (inv[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
-      world[ty][tx] = activeItem;
-      inv[activeItem]--;
+  if (e.button === 0 && worldMap[tileY]?.[tileX] !== 0) {
+    miningState.active = true;
+    miningState.x = tileX;
+    miningState.y = tileY;
+    miningState.progress = 0;
+  } else if (e.button === 2) {
+    let selectedId = hotbarSlots[player.selectedSlot];
+    if (!BLOCKS[selectedId].isTool && !BLOCKS[selectedId].isItem && (inventory[selectedId] || 0) > 0 && worldMap[tileY]?.[tileX] === 0) {
+      worldMap[tileY][tileX] = selectedId;
+      inventory[selectedId]--;
     }
   }
 };
 
-cv.onmouseup = () => breaking.active = false;
-cv.oncontextmenu = e => e.preventDefault();
+canvas.onmouseup = () => miningState.active = false;
+canvas.oncontextmenu = e => e.preventDefault();
 
-(function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
-})();
+// ==========================================
+// 9. ANA OYUN DÖNGÜSÜ (60 FPS)
+// ==========================================
+function gameLoop() {
+  updatePhysics();
+  renderGame();
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
 </script>
 </body>
 </html>
