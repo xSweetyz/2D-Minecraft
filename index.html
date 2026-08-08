@@ -3,158 +3,213 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Terraria Solo World</title>
+  <title>2D Minecraft Solo</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; user-select: none; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #65b6e8; font-family: sans-serif; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #78a7ff; font-family: 'Courier New', Courier, monospace; }
     #game { display: block; width: 100vw; height: 100vh; }
-    #ui { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 2px 2px 3px #000; font-weight: bold; font-size: 15px; pointer-events: none; }
-    #hotbar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); }
-    .slot { width: 44px; height: 44px; border: 2px solid #555; border-radius: 6px; display: flex; align-items: center; justify-content: center; position: relative; background: rgba(255,255,255,0.1); cursor: pointer; }
-    .slot.sel { border-color: #fff; background: rgba(255,255,255,0.3); transform: scale(1.05); }
-    .slot i { width: 24px; height: 24px; border-radius: 3px; display: block; }
-    .slot b { position: absolute; bottom: 2px; right: 4px; font-size: 11px; color: #fff; text-shadow: 1px 1px 2px #000; }
+    #ui { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 16px; pointer-events: none; }
+    #hotbar { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; background: #8b8b8b; padding: 4px; border: 4px solid #3c3c3c; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .slot { width: 48px; height: 48px; border: 3px solid #373737; background: #8b8b8b; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+    .slot.sel { border-color: #ffffff; background: #a0a0a0; transform: scale(1.08); }
+    .slot canvas { width: 32px; height: 32px; image-rendering: pixelated; }
+    .slot b { position: absolute; bottom: 2px; right: 4px; font-size: 12px; color: #fff; text-shadow: 1px 1px 0 #000; }
   </style>
 </head>
 <body>
 
   <canvas id="game"></canvas>
   <div id="ui">
-    <div id="stats">❤️ 20/20 | 🍗 20/20</div>
-    <div style="font-size:12px; margin-top:5px; opacity:0.9;">
-      [A/D] Hareket | [W / Space] Zıpla | [Sol Tık] Kır | [Sağ Tık] Koy | [1-5] Seçim
-    </div>
+    <div>❤️ 20/20 | 🍗 20/20</div>
+    <div style="font-size:12px; margin-top:4px; opacity:0.9;">[A/D] Yürü | [W/Space] Zıpla | [Sol Tık] Kır | [Sağ Tık] Koy | [1-6] Slot</div>
   </div>
   <div id="hotbar"></div>
 
 <script>
 const cv = document.getElementById("game"), ctx = cv.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
 function resize(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
 window.addEventListener("resize", resize); resize();
 
-const BLOCK_SIZE = 32;
-const MAP_W = 150, MAP_H = 60;
+const T = 36; // Blok boyutu
+const MAP_W = 120, MAP_H = 60;
 
+// Minecraft Blok Tanımları ve Dokuları
 const B = {
-  0: { name: "air", solid: 0, color: "transparent" },
-  1: { name: "grass", solid: 1, color: "#55a832" },
-  2: { name: "dirt", solid: 1, color: "#795548" },
-  3: { name: "stone", solid: 1, color: "#607d8b" },
-  4: { name: "wood", solid: 1, color: "#8d5524" },
-  5: { name: "leaves", solid: 0, color: "#2e7d32" }
+  0: { name: "air", solid: 0 },
+  1: { name: "grass", solid: 1, needsPick: false },
+  2: { name: "dirt", solid: 1, needsPick: false },
+  3: { name: "stone", solid: 1, needsPick: true },
+  4: { name: "wood", solid: 1, needsPick: false },
+  5: { name: "leaves", solid: 0, needsPick: false },
+  6: { name: "coal_ore", solid: 1, needsPick: true },
+  7: { name: "iron_ore", solid: 1, needsPick: true },
+  8: { name: "pickaxe", solid: 0, isTool: true }
 };
 
 let world = [];
 for(let y = 0; y < MAP_H; y++) {
   world[y] = [];
   for(let x = 0; x < MAP_W; x++) {
-    if(y < 20) world[y][x] = 0;
-    else if(y === 20) world[y][x] = 1;
-    else if(y < 26) world[y][x] = 2;
-    else world[y][x] = 3;
-  }
-}
-
-// Ağaçlar Oluşturuluyor
-for(let x = 10; x < MAP_W - 10; x += 12) {
-  for(let h = 1; h <= 4; h++) world[20 - h][x] = 4;
-  for(let lx = -1; lx <= 1; lx++) {
-    for(let ly = -6; ly <= -5; ly++) {
-      if(x + lx >= 0 && x + lx < MAP_W) world[20 + ly][x + lx] = 5;
+    if(y < 22) world[y][x] = 0;
+    else if(y === 22) world[y][x] = 1; // Çimen
+    else if(y < 27) world[y][x] = 2; // Toprak
+    else {
+      let r = Math.random();
+      if(r < 0.05) world[y][x] = 6; // Kömür
+      else if(r < 0.08) world[y][x] = 7; // Demir
+      else world[y][x] = 3; // Taş
     }
   }
 }
 
-let player = {
-  x: 15 * BLOCK_SIZE,
-  y: 18 * BLOCK_SIZE,
-  w: 22,
-  h: 52,
-  vx: 0,
-  vy: 0,
-  grounded: false,
-  sel: 0
-};
+// Minecraft Meşe Ağaçları
+for(let x = 8; x < MAP_W - 8; x += 10) {
+  if(Math.random() > 0.3) {
+    for(let h = 1; h <= 4; h++) world[22 - h][x] = 4;
+    for(let lx = -2; lx <= 2; lx++) {
+      for(let ly = -6; ly <= -4; ly++) {
+        if(x + lx >= 0 && x + lx < MAP_W && world[22 + ly][x + lx] === 0) world[22 + ly][x + lx] = 5;
+      }
+    }
+  }
+}
 
-const inv = { 1: 20, 2: 10, 3: 10, 4: 8 };
-const slots = [1, 2, 3, 4];
+let player = { x: 10 * T, y: 19 * T, w: 22, h: 54, vx: 0, vy: 0, grounded: false, sel: 0 };
+const inv = { 1: 32, 2: 16, 3: 16, 4: 8, 8: 1 };
+const slots = [8, 1, 2, 3, 4];
 const keys = {};
 
 addEventListener("keydown", e => {
   keys[e.key.toLowerCase()] = true;
-  if("1234".includes(e.key)) player.sel = +e.key - 1;
+  if("123456".includes(e.key)) player.sel = +e.key - 1;
 });
 addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
 function isSolid(px, py) {
-  let bx = Math.floor(px / BLOCK_SIZE);
-  let by = Math.floor(py / BLOCK_SIZE);
+  let bx = Math.floor(px / T), by = Math.floor(py / T);
   if(bx < 0 || bx >= MAP_W || by < 0 || by >= MAP_H) return 1;
   return B[world[by][bx]].solid;
 }
 
 function update() {
-  if(keys["a"] || keys["arrowleft"]) player.vx = -3.8;
-  else if(keys["d"] || keys["arrowright"]) player.vx = 3.8;
-  else player.vx *= 0.8;
+  if(keys["a"] || keys["arrowleft"]) player.vx = -4;
+  else if(keys["d"] || keys["arrowright"]) player.vx = 4;
+  else player.vx *= 0.75;
 
   if((keys["w"] || keys[" "] || keys["arrowup"]) && player.grounded) {
-    player.vy = -9.5;
+    player.vy = -10.5;
     player.grounded = false;
   }
 
-  player.vy += 0.48; // Yerçekimi
+  player.vy += 0.52; // Yerçekimi
 
-  // X Yatay Çarpışma
+  // Fiziksel Çarpışmalar
   player.x += player.vx;
   if(player.vx > 0 && (isSolid(player.x + player.w, player.y) || isSolid(player.x + player.w, player.y + player.h - 2))) {
-    player.x = Math.floor((player.x + player.w) / BLOCK_SIZE) * BLOCK_SIZE - player.w - 0.1;
+    player.x = Math.floor((player.x + player.w) / T) * T - player.w - 0.1;
   }
   if(player.vx < 0 && (isSolid(player.x, player.y) || isSolid(player.x, player.y + player.h - 2))) {
-    player.x = Math.floor(player.x / BLOCK_SIZE + 1) * BLOCK_SIZE + 0.1;
+    player.x = Math.floor(player.x / T + 1) * T + 0.1;
   }
 
-  // Y Dikey Çarpışma
   player.y += player.vy;
   player.grounded = false;
   if(player.vy > 0 && (isSolid(player.x + 2, player.y + player.h) || isSolid(player.x + player.w - 2, player.y + player.h))) {
-    player.y = Math.floor((player.y + player.h) / BLOCK_SIZE) * BLOCK_SIZE - player.h;
+    player.y = Math.floor((player.y + player.h) / T) * T - player.h;
     player.vy = 0;
     player.grounded = true;
   }
+}
+
+// Procedural Minecraft Dokuları Çizici
+function drawTexture(id, x, y, size) {
+  if(id === 0) return;
+
+  if(id === 1) { // Çimen
+    ctx.fillStyle = "#866043"; ctx.fillRect(x, y, size, size); // Toprak
+    ctx.fillStyle = "#5c8e32"; ctx.fillRect(x, y, size, 10);  // Üst Yeşil
+    ctx.fillStyle = "#4c7828"; for(let i=0;i<size;i+=6) ctx.fillRect(x+i, y+8, 4, 4); // Çimen Deseni
+  } else if(id === 2) { // Toprak
+    ctx.fillStyle = "#866043"; ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = "#5c3e26"; 
+    ctx.fillRect(x+4, y+6, 6, 6); ctx.fillRect(x+20, y+18, 8, 6); ctx.fillRect(x+10, y+26, 6, 6);
+  } else if(id === 3) { // Taş
+    ctx.fillStyle = "#737373"; ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = "#525252";
+    ctx.fillRect(x+2, y+4, 10, 6); ctx.fillRect(x+18, y+12, 12, 8); ctx.fillRect(x+6, y+22, 14, 6);
+  } else if(id === 4) { // Meşe Odunu
+    ctx.fillStyle = "#674d32"; ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = "#3e2d1c"; ctx.fillRect(x+6, y, 4, size); ctx.fillRect(x+22, y, 4, size);
+  } else if(id === 5) { // Yaprak
+    ctx.fillStyle = "#3a6821"; ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = "#284a15"; 
+    ctx.fillRect(x+2, y+2, 8, 8); ctx.fillRect(x+18, y+14, 10, 10); ctx.fillRect(x+6, y+22, 8, 8);
+  } else if(id === 6) { // Kömür Madeni
+    drawTexture(3, x, y, size);
+    ctx.fillStyle = "#1c1c1c";
+    ctx.fillRect(x+6, y+8, 8, 8); ctx.fillRect(x+20, y+16, 10, 8);
+  } else if(id === 7) { // Demir Madeni
+    drawTexture(3, x, y, size);
+    ctx.fillStyle = "#d8af93";
+    ctx.fillRect(x+8, y+6, 8, 6); ctx.fillRect(x+18, y+20, 8, 8);
+  } else if(id === 8) { // Taş Kazma
+    ctx.fillStyle = "#737373"; ctx.fillRect(x+6, y+4, 20, 6);
+    ctx.fillStyle = "#674d32"; ctx.fillRect(x+14, y+10, 4, 18);
+  }
+
+  if(id !== 8) {
+    ctx.strokeStyle = "rgba(0,0,0,0.15)";
+    ctx.strokeRect(x, y, size, size);
+  }
+}
+
+function drawSteve(x, y) {
+  // Bacaklar (Lacivert)
+  ctx.fillStyle = "#2b2b7a"; ctx.fillRect(x + 2, y + 32, 8, 22); ctx.fillRect(x + 12, y + 32, 8, 22);
+  // Gövde (Turkuaz Steve Tişörtü)
+  ctx.fillStyle = "#00a8a8"; ctx.fillRect(x + 2, y + 16, 18, 16);
+  // Kafa (Ten Rengi & Saç)
+  ctx.fillStyle = "#cbb094"; ctx.fillRect(x + 3, y, 16, 16);
+  ctx.fillStyle = "#4a2d18"; ctx.fillRect(x + 3, y, 16, 5); // Saç
+  ctx.fillStyle = "#2b2b7a"; ctx.fillRect(x + 12, y + 7, 3, 3); // Göz
 }
 
 function draw() {
   let camX = player.x - cv.width / 2;
   let camY = player.y - cv.height / 2;
 
-  ctx.fillStyle = "#65b6e8";
+  // Minecraft Gökyüzü Gradient
+  ctx.fillStyle = "#78a7ff";
   ctx.fillRect(0, 0, cv.width, cv.height);
 
+  // Güneş
+  ctx.fillStyle = "#ffffa0";
+  ctx.fillRect(100 - camX * 0.05, 60, 50, 50);
+
+  // Bulutlar
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillRect(200 - camX * 0.1, 80, 160, 30);
+  ctx.fillRect(600 - camX * 0.1, 50, 220, 35);
+
   // Blok Çizimi
-  let startX = Math.max(0, Math.floor(camX / BLOCK_SIZE));
-  let endX = Math.min(MAP_W, Math.ceil((camX + cv.width) / BLOCK_SIZE));
-  let startY = Math.max(0, Math.floor(camY / BLOCK_SIZE));
-  let endY = Math.min(MAP_H, Math.ceil((camY + cv.height) / BLOCK_SIZE));
+  let startX = Math.max(0, Math.floor(camX / T));
+  let endX = Math.min(MAP_W, Math.ceil((camX + cv.width) / T));
+  let startY = Math.max(0, Math.floor(camY / T));
+  let endY = Math.min(MAP_H, Math.ceil((camY + cv.height) / T));
 
   for(let y = startY; y < endY; y++) {
     for(let x = startX; x < endX; x++) {
       let tile = world[y][x];
       if(tile !== 0) {
-        ctx.fillStyle = B[tile].color;
-        let screenX = x * BLOCK_SIZE - camX;
-        let screenY = y * BLOCK_SIZE - camY;
-        ctx.fillRect(screenX, screenY, BLOCK_SIZE, BLOCK_SIZE);
-        ctx.strokeStyle = "rgba(0,0,0,0.08)";
-        ctx.strokeRect(screenX, screenY, BLOCK_SIZE, BLOCK_SIZE);
+        drawTexture(tile, x * T - camX, y * T - camY, T);
       }
     }
   }
 
-  // Karakter Çizimi
-  let px = player.x - camX, py = player.y - camY;
-  ctx.fillStyle = "#2b5c8f"; ctx.fillRect(px, py + 18, player.w, player.h - 18); // Gövde
-  ctx.fillStyle = "#dcb083"; ctx.fillRect(px + 2, py, player.w - 4, 18); // Kafa
+  // Steve Çizimi
+  drawSteve(player.x - camX, player.y - camY);
 
   renderBar();
 }
@@ -165,7 +220,19 @@ function renderBar() {
     let d = document.createElement("div");
     d.className = "slot" + (i === player.sel ? " sel" : "");
     d.onclick = () => player.sel = i;
-    d.innerHTML = `<i style="background:${B[id].color}"></i><b>${inv[id] || 0}</b>`;
+
+    let c = document.createElement("canvas");
+    c.width = 32; c.height = 32;
+    let cx = c.getContext("2d");
+    
+    // Icon çizimi
+    let tempCtx = ctx;
+    window.ctx = cx;
+    drawTexture(id, 0, 0, 32);
+    window.ctx = tempCtx;
+
+    d.appendChild(c);
+    if(id !== 8) d.innerHTML += `<b>${inv[id] || 0}</b>`;
     h.appendChild(d);
   });
 }
@@ -173,22 +240,29 @@ function renderBar() {
 cv.onmousedown = e => {
   let camX = player.x - cv.width / 2;
   let camY = player.y - cv.height / 2;
-  let tx = Math.floor((e.clientX + camX) / BLOCK_SIZE);
-  let ty = Math.floor((e.clientY + camY) / BLOCK_SIZE);
+  let tx = Math.floor((e.clientX + camX) / T);
+  let ty = Math.floor((e.clientY + camY) / T);
 
-  // Mesafe Kontrolü (Çok uzaktaki bloğu kıramaz)
-  let dist = Math.hypot(tx * BLOCK_SIZE - player.x, ty * BLOCK_SIZE - player.y);
-  if(dist > BLOCK_SIZE * 7) return;
+  let dist = Math.hypot(tx * T - player.x, ty * T - player.y);
+  if(dist > T * 6) return;
 
-  if(e.button === 0 && world[ty]?.[tx] !== 0) { // Sol Tık: Kır
-    let t = world[ty][tx];
+  let activeItem = slots[player.sel];
+
+  if(e.button === 0 && world[ty]?.[tx] !== 0) { // Sol Tık: Blok Kır
+    let targetBlock = world[ty][tx];
+    
+    // Taş ve Madenler için Kazma Gereksinimi
+    if(B[targetBlock].needsPick && activeItem !== 8) {
+      alert("Bu bloğu kırmak için eline Kazma (1 numaralı slot) almalısın!");
+      return;
+    }
+
     world[ty][tx] = 0;
-    inv[t] = (inv[t] || 0) + 1;
-  } else if(e.button === 2) { // Sağ Tık: Koy
-    let id = slots[player.sel];
-    if((inv[id] || 0) > 0 && world[ty]?.[tx] === 0) {
-      world[ty][tx] = id;
-      inv[id]--;
+    inv[targetBlock] = (inv[targetBlock] || 0) + 1;
+  } else if(e.button === 2) { // Sağ Tık: Blok Koy
+    if(activeItem !== 8 && (inv[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
+      world[ty][tx] = activeItem;
+      inv[activeItem]--;
     }
   }
 };
