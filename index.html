@@ -27,8 +27,8 @@
     }
     #ui {
       position: absolute;
-      top: 15px;
-      left: 15px;
+      top: 10px;
+      left: 10px;
       color: #fff;
       pointer-events: none;
       z-index: 10;
@@ -39,15 +39,15 @@
     .hud-card {
       background: rgba(10, 15, 30, 0.85);
       backdrop-filter: blur(8px);
-      padding: 8px 14px;
+      padding: 6px 12px;
       border-radius: 8px;
       border: 2px solid rgba(255, 255, 255, 0.15);
       box-shadow: 0 4px 15px rgba(0,0,0,0.6);
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       font-weight: bold;
-      font-size: 13px;
+      font-size: 12px;
     }
     .controls-hint {
       font-size: 11px;
@@ -58,37 +58,37 @@
     #mobile-controls {
       display: none;
       position: absolute;
-      bottom: 80px;
+      bottom: 20px;
       left: 0;
       width: 100%;
-      padding: 0 20px;
+      padding: 0 15px;
       justify-content: space-between;
       z-index: 15;
       pointer-events: none;
     }
     .touch-group {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       pointer-events: auto;
     }
     .touch-btn {
-      width: 60px;
-      height: 60px;
-      background: rgba(15, 23, 42, 0.7);
-      border: 2px solid rgba(56, 189, 248, 0.5);
+      width: 70px;
+      height: 70px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid rgba(56, 189, 248, 0.6);
       border-radius: 50%;
       color: #fff;
-      font-size: 18px;
+      font-size: 22px;
       font-weight: bold;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
       outline: none;
     }
     .touch-btn:active {
-      background: rgba(56, 189, 248, 0.4);
-      transform: scale(0.95);
+      background: rgba(56, 189, 248, 0.5);
+      transform: scale(0.92);
     }
 
     #inventory-modal {
@@ -97,57 +97,59 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(15, 23, 42, 0.95);
+      background: rgba(15, 23, 42, 0.96);
       backdrop-filter: blur(12px);
       border: 2px solid #38bdf8;
       border-radius: 12px;
-      padding: 20px;
+      padding: 15px;
       width: 95%;
-      max-width: 520px;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
       z-index: 20;
       color: #fff;
     }
     #inventory-modal h2 {
-      font-size: 16px;
+      font-size: 15px;
       color: #38bdf8;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       text-align: center;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 6px;
+      padding-bottom: 5px;
     }
     .section-title {
-      font-size: 12px;
+      font-size: 11px;
       color: #94a3b8;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       font-weight: bold;
     }
     .inventory-container {
       display: flex;
-      gap: 15px;
+      gap: 10px;
     }
     .main-inv-area {
       flex: 1;
     }
     .armor-equip-area {
-      width: 65px;
+      width: 55px;
       display: flex;
       flex-direction: column;
       gap: 6px;
       align-items: center;
       border-left: 1px solid rgba(255, 255, 255, 0.1);
-      padding-left: 12px;
+      padding-left: 10px;
     }
     .inv-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 6px;
+      margin-bottom: 10px;
     }
     .inv-slot {
-      width: 50px;
-      height: 50px;
-      background: rgba(30, 41, 59, 0.8);
+      width: 44px;
+      height: 44px;
+      background: rgba(30, 41, 59, 0.85);
       border: 2px solid rgba(255, 255, 255, 0.15);
       border-radius: 8px;
       display: flex;
@@ -157,11 +159,11 @@
       cursor: grab;
     }
     .inv-slot:active { cursor: grabbing; }
-    .inv-slot canvas { width: 32px; height: 32px; image-rendering: pixelated; pointer-events: none; }
+    .inv-slot canvas { width: 28px; height: 28px; image-rendering: pixelated; pointer-events: none; }
     .inv-slot b {
       position: absolute;
       bottom: 2px;
-      right: 4px;
+      right: 3px;
       font-size: 10px;
       color: #fff;
       text-shadow: 1px 1px #000;
@@ -185,8 +187,8 @@
     .recipe-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      max-height: 140px;
+      gap: 5px;
+      max-height: 110px;
       overflow-y: auto;
     }
     .recipe-card {
@@ -194,14 +196,14 @@
       align-items: center;
       justify-content: space-between;
       background: rgba(30, 41, 59, 0.8);
-      padding: 6px 10px;
+      padding: 5px 8px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 6px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
     }
     .recipe-card.disabled { opacity: 0.4; cursor: not-allowed; }
-    .craft-btn { background: #0284c7; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .craft-btn { background: #0284c7; color: #fff; padding: 3px 7px; border-radius: 4px; font-size: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -249,7 +251,7 @@
         <div class="inv-slot" id="armor-slot-boots" title="Bot"></div>
       </div>
     </div>
-    <div class="section-title" style="margin-top: 8px;">Üretim Reçeteleri</div>
+    <div class="section-title" style="margin-top: 6px;">Üretim Reçeteleri</div>
     <div class="recipe-list" id="recipe-list"></div>
   </div>
 
@@ -269,7 +271,7 @@ window.addEventListener("resize", resize);
 resize();
 
 const TILE_SIZE = 32;
-const ZOOM = 1.85; 
+const ZOOM = 1.65; 
 const MAP_W = 200;
 const MAP_H = 120;
 
@@ -288,7 +290,6 @@ const ITEM_TYPES = {
   11: { name: "Taş Kazma", solid: false, isTool: true, speed: 8.0, color: "#94a3b8" },
   12: { name: "Bakır Kazma", solid: false, isTool: true, speed: 14.0, color: "#f97316" },
 
-  // Zırh Parçaları
   13: { name: "Taş Kask", solid: false, isArmor: true, armorType: 'head', color: "#64748b" },
   14: { name: "Taş Göğüslük", solid: false, isArmor: true, armorType: 'chest', color: "#64748b" },
   15: { name: "Taş Pantolon", solid: false, isArmor: true, armorType: 'legs', color: "#475569" },
@@ -372,7 +373,6 @@ let camY = player.y;
 const hotbar = [
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
 ];
-// Envantere 5 slot daha eklendi (Toplam 17 slot depolama)
 const storage = [
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
@@ -380,7 +380,6 @@ const storage = [
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
 ];
 
-// Giyilen Zırh Slotları
 const equippedArmor = {
   head: { id: 0, count: 0 },
   chest: { id: 0, count: 0 },
@@ -494,13 +493,25 @@ bindTouchButton("btn-jump", () => {
   if (player.grounded) { player.vy = -6.8; player.grounded = false; }
 });
 bindTouchButton("btn-inv", () => toggleInventoryModal());
+
+// Mobil için gelişmiş kazma/kırma tetikleyicisi
 bindTouchButton("btn-action", () => {
-  let tx = Math.floor((player.x + player.w/2) / TILE_SIZE);
-  let ty = Math.floor((player.y + player.h/2) / TILE_SIZE);
+  let targetX = player.x + player.w / 2 + (player.facing * TILE_SIZE * 1.2);
+  let targetY = player.y + player.h / 2;
+  let tx = Math.floor(targetX / TILE_SIZE);
+  let ty = Math.floor(targetY / TILE_SIZE);
+  
   if (world[ty]?.[tx] !== 0) {
     let mined = world[ty][tx];
     world[ty][tx] = 0;
     addPlayerItem(mined, 1);
+  } else {
+    let activeSlot = hotbar[player.selectedSlot];
+    let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
+    if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor) {
+      world[ty][tx] = activeItem;
+      consumePlayerItem(activeItem, 1);
+    }
   }
 });
 
@@ -633,31 +644,26 @@ function renderTile(id, x, y, size, targetCtx) {
   }
 }
 
-// Oyuncu Render (Tam Zırh Görünümü ve İki Kol Hatasız Çizim)
 function renderPlayerTerraria(screenX, screenY) {
   let anim = Math.sin(player.animFrame) * 4;
   ctx.save();
   ctx.translate(screenX + player.w / 2, screenY + player.h / 2);
   if (player.facing === -1) ctx.scale(-1, 1);
 
-  // Botlar (Ayaklar)
   let bootsItem = ITEM_TYPES[equippedArmor.boots.id];
   ctx.fillStyle = bootsItem ? bootsItem.color : "#451a03";
   ctx.fillRect(-6, 15 + anim, 5, 5);
   ctx.fillRect(2, 15 - anim, 5, 5);
 
-  // Pantolon
   let legsItem = ITEM_TYPES[equippedArmor.legs.id];
   ctx.fillStyle = legsItem ? legsItem.color : "#1e3a8a";
   ctx.fillRect(-6, 5, 5, 10);
   ctx.fillRect(2, 5, 5, 10);
 
-  // Gövde ve Göğüslük
   let chestItem = ITEM_TYPES[equippedArmor.chest.id];
   ctx.fillStyle = chestItem ? chestItem.color : "#dc2626";
   ctx.fillRect(-7, -8, 14, 13);
 
-  // Sağ Kol ve Elindeki Eşya / Alet (Kırma Animasyonlu)
   ctx.fillStyle = "#fca5a5";
   let armAngle = mining.active ? Math.sin(Date.now() * 0.02) * 0.8 : -0.2;
   ctx.save();
@@ -674,20 +680,16 @@ function renderPlayerTerraria(screenX, screenY) {
   }
   ctx.restore();
 
-  // Sol Kol (Kayıp olma sorunu giderildi, her zaman yerinde)
   ctx.fillStyle = "#fca5a5";
   ctx.fillRect(-10, -6 - anim * 0.5, 4, 10);
 
-  // Kafa
   ctx.fillStyle = "#fca5a5";
   ctx.fillRect(-6, -21, 13, 13);
 
-  // Gözler
   ctx.fillStyle = "#0f172a";
   ctx.fillRect(-2, -16, 2, 4);
   ctx.fillRect(3, -16, 2, 4);
 
-  // Kask / Saç
   let headItem = ITEM_TYPES[equippedArmor.head.id];
   if (headItem) {
     ctx.fillStyle = headItem.color;
@@ -757,10 +759,10 @@ function render() {
 }
 
 function renderCanvasHotbarUI() {
-  const slotSize = 48;
-  const gap = 8;
+  const slotSize = 44;
+  const gap = 6;
   const startX = (canvas.width - (5 * slotSize + 4 * gap)) / 2;
-  const startY = canvas.height - slotSize - 16;
+  const startY = canvas.height - slotSize - 12;
 
   updateItemCounts();
 
@@ -776,17 +778,17 @@ function renderCanvasHotbarUI() {
     ctx.strokeRect(sx, sy, slotSize, slotSize);
 
     ctx.fillStyle = "#94a3b8";
-    ctx.font = "bold 10px sans-serif";
-    ctx.fillText(i + 1, sx + 4, sy + 12);
+    ctx.font = "bold 9px sans-serif";
+    ctx.fillText(i + 1, sx + 3, sy + 10);
 
     let slot = hotbar[i];
     if (slot.id && slot.id !== 0 && slot.count > 0) {
-      renderTile(slot.id, sx + 8, sy + 8, 32, ctx);
+      renderTile(slot.id, sx + 6, sy + 6, 32, ctx);
       if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor) {
         ctx.fillStyle = "#fff";
-        ctx.font = "bold 11px sans-serif";
+        ctx.font = "bold 10px sans-serif";
         ctx.textAlign = "right";
-        ctx.fillText(slot.count, sx + slotSize - 4, sy + slotSize - 4);
+        ctx.fillText(slot.count, sx + slotSize - 3, sy + slotSize - 3);
         ctx.textAlign = "left";
       }
     }
@@ -844,7 +846,6 @@ function buildInventoryUI() {
     stGrid.appendChild(slotDiv);
   }
 
-  // Zırh Kuşanma Slotları (PC için sürükle bırak destekli)
   ['head', 'chest', 'legs', 'boots'].forEach(type => {
     let slotDiv = document.getElementById(`armor-slot-${type}`);
     slotDiv.innerHTML = "";
@@ -887,8 +888,8 @@ function setupTooltipEvents(elem) {
     if (name) {
       tooltip.innerText = name;
       tooltip.style.display = "block";
-      tooltip.style.left = (e.clientX + 12) + "px";
-      tooltip.style.top = (e.clientY + 12) + "px";
+      tooltip.style.left = (e.clientX + 10) + "px";
+      tooltip.style.top = (e.clientY + 10) + "px";
     }
   };
   elem.onmouseleave = () => tooltip.style.display = "none";
@@ -937,7 +938,6 @@ function setupArmorDragAndDropEvents(elem, armorType) {
     let sourceSlot = srcType === 'hotbar' ? hotbar[srcIdx] : (srcType === 'storage' ? storage[srcIdx] : equippedArmor[srcType]);
     let targetSlot = equippedArmor[armorType];
 
-    // Gelen eşyanın bu zırh slotuna uygun olup olmadığını kontrol et
     if (sourceSlot.id !== 0 && ITEM_TYPES[sourceSlot.id].armorType === armorType) {
       let temp = { id: sourceSlot.id, count: sourceSlot.count };
       sourceSlot.id = targetSlot.id;
