@@ -8,15 +8,17 @@
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #78a7ff; font-family: 'Courier New', Courier, monospace; }
     #game { display: block; width: 100vw; height: 100vh; }
-    #ui { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 15px; pointer-events: none; }
-    #hotbar { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; background: #8b8b8b; padding: 4px; border: 4px solid #3c3c3c; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-    .slot { width: 44px; height: 44px; border: 3px solid #373737; background: #8b8b8b; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+    #ui { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 15px; pointer-events: none; z-index: 10; }
+    
+    /* Hotbar Hizalaması */
+    #hotbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; background: #8b8b8b; padding: 4px; border: 4px solid #3c3c3c; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; }
+    .slot { width: 46px; height: 46px; border: 3px solid #373737; background: #8b8b8b; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
     .slot.sel { border-color: #ffffff; background: #a0a0a0; }
     .slot canvas { width: 32px; height: 32px; image-rendering: pixelated; }
     .slot b { position: absolute; bottom: 2px; right: 4px; font-size: 11px; color: #fff; text-shadow: 1px 1px 0 #000; }
     
-    /* Crafting & Inventory UI */
-    #craft-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #c6c6c6; border: 4px solid #3c3c3c; padding: 16px; width: 340px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
+    /* Crafting UI */
+    #craft-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #c6c6c6; border: 4px solid #3c3c3c; padding: 16px; width: 340px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); z-index: 20; }
     #craft-menu h3 { margin-bottom: 12px; color: #3c3c3c; font-size: 18px; text-align: center; }
     .recipe-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
     .recipe-item { display: flex; align-items: center; justify-content: space-between; background: #8b8b8b; padding: 8px; border: 2px solid #3c3c3c; cursor: pointer; color: #fff; }
@@ -29,7 +31,7 @@
   <canvas id="game"></canvas>
   <div id="ui">
     <div>❤️ 20/20 | 🍗 20/20</div>
-    <div style="font-size:12px; margin-top:4px; opacity:0.9;">[A/D] Yürü | [W/Space] Zıpla | [E] Crafting | [Sol Tık] Kır | [Sağ Tık] Koy</div>
+    <div style="font-size:12px; margin-top:4px; opacity:0.9;">[A/D] Yürü | [W/Space] Zıpla | [E] Crafting | [Sol Tık Basılı Tut] Kır | [Sağ Tık] Koy</div>
   </div>
 
   <div id="craft-menu">
@@ -47,32 +49,33 @@ function resize(){ cv.width = window.innerWidth; cv.height = window.innerHeight;
 window.addEventListener("resize", resize); resize();
 
 const T = 36;
-const MAP_W = 150, MAP_H = 60;
+const MAP_W = 200, MAP_H = 80;
 
-// Blok Özellikleri & Sertlik (Kırma Süresi)
+// Blok Sertlikleri (Ticks cinsinden kırma süreleri)
+// 60 tick = 1 saniye
 const B = {
   0: { name: "Hava", solid: 0 },
-  1: { name: "Çimen", solid: 1, hardness: 15 },
-  2: { name: "Toprak", solid: 1, hardness: 12 },
-  3: { name: "Taş", solid: 1, hardness: 45, needPick: true },
-  4: { name: "Meşe Odunu", solid: 1, hardness: 25 },
-  5: { name: "Yaprak", solid: 0, hardness: 5 },
-  6: { name: "Kömür Madeni", solid: 1, hardness: 55, needPick: true },
-  7: { name: "Demir Madeni", solid: 1, hardness: 70, needPick: true },
-  8: { name: "Tahta", solid: 1, hardness: 20 },
+  1: { name: "Çimen", solid: 1, time: 90 },    // ~1.5 sn
+  2: { name: "Toprak", solid: 1, time: 120 },   // 2 sn
+  3: { name: "Taş", solid: 1, time: 300, needPick: true }, // Yumrukla ~5 sn, Kazmayla hızlı
+  4: { name: "Meşe Odunu", solid: 1, time: 300 }, // 5 sn
+  5: { name: "Yaprak", solid: 0, time: 20 },
+  6: { name: "Kömür Madeni", solid: 1, time: 360, needPick: true },
+  7: { name: "Demir Madeni", solid: 1, time: 420, needPick: true },
+  8: { name: "Tahta", solid: 1, time: 180 },
   9: { name: "Çubuk", solid: 0, isItem: true },
-  10:{ name: "Tahta Kazma", solid: 0, isTool: true, power: 3 },
-  11:{ name: "Taş Kazma", solid: 0, isTool: true, power: 6 }
+  10:{ name: "Tahta Kazma", solid: 0, isTool: true, speed: 3 },
+  11:{ name: "Taş Kazma", solid: 0, isTool: true, speed: 6 }
 };
 
-// Dünya Oluşturma
+// Dünya Yapısı
 let world = [];
 for(let y = 0; y < MAP_H; y++) {
   world[y] = [];
   for(let x = 0; x < MAP_W; x++) {
-    if(y < 22) world[y][x] = 0;
-    else if(y === 22) world[y][x] = 1;
-    else if(y < 27) world[y][x] = 2;
+    if(y < 25) world[y][x] = 0;
+    else if(y === 25) world[y][x] = 1;
+    else if(y < 30) world[y][x] = 2;
     else {
       let r = Math.random();
       if(r < 0.04) world[y][x] = 6;
@@ -83,28 +86,28 @@ for(let y = 0; y < MAP_H; y++) {
 }
 
 // Ağaçlar
-for(let x = 12; x < MAP_W - 12; x += 9) {
+for(let x = 10; x < MAP_W - 10; x += 12) {
   if(Math.random() > 0.3) {
-    for(let h = 1; h <= 4; h++) world[22 - h][x] = 4;
+    for(let h = 1; h <= 4; h++) world[25 - h][x] = 4;
     for(let lx = -2; lx <= 2; lx++) {
       for(let ly = -6; ly <= -4; ly++) {
-        if(x + lx >= 0 && x + lx < MAP_W && world[22 + ly][x + lx] === 0) world[22 + ly][x + lx] = 5;
+        if(x + lx >= 0 && x + lx < MAP_W && world[25 + ly][x + lx] === 0) world[25 + ly][x + lx] = 5;
       }
     }
   }
 }
 
 let player = {
-  x: 20 * T, y: 19 * T, w: 22, h: 54,
+  x: 15 * T, y: 22 * T, w: 22, h: 54,
   vx: 0, vy: 0, grounded: false,
   sel: 0, animFrame: 0, isMoving: false
 };
 
-const inv = { 1: 0, 2: 10, 3: 0, 4: 8, 8: 0, 9: 0, 10: 0, 11: 0 };
-const slots = [10, 1, 2, 3, 4, 8, 9, 11];
+// Başlangıç Envanteri (Kazmasız başlar)
+const inv = { 1: 0, 2: 0, 3: 0, 4: 0, 8: 0, 9: 0, 10: 0, 11: 0 };
+const slots = [1, 2, 3, 4, 8, 9, 10, 11];
 const keys = {};
 
-// Kırma Sistemi Değişkenleri
 let breaking = { active: false, x: -1, y: -1, progress: 0 };
 
 addEventListener("keydown", e => {
@@ -123,22 +126,21 @@ function isSolid(px, py) {
 function update() {
   player.isMoving = false;
 
-  if(keys["a"] || keys["arrowleft"]) { player.vx = -3.8; player.isMoving = true; }
-  else if(keys["d"] || keys["arrowright"]) { player.vx = 3.8; player.isMoving = true; }
+  if(keys["a"] || keys["arrowleft"]) { player.vx = -3.6; player.isMoving = true; }
+  else if(keys["d"] || keys["arrowright"]) { player.vx = 3.6; player.isMoving = true; }
   else player.vx *= 0.7;
 
   if((keys["w"] || keys[" "] || keys["arrowup"]) && player.grounded) {
-    player.vy = -10.2;
+    player.vy = -10.5;
     player.grounded = false;
   }
 
   player.vy += 0.5; // Yerçekimi
 
-  // Hareket Animasyonu
   if(player.isMoving && player.grounded) player.animFrame += 0.2;
   else player.animFrame = 0;
 
-  // Çarpışma X
+  // Çarpışmalar
   player.x += player.vx;
   if(player.vx > 0 && (isSolid(player.x + player.w, player.y) || isSolid(player.x + player.w, player.y + player.h - 2))) {
     player.x = Math.floor((player.x + player.w) / T) * T - player.w - 0.1;
@@ -147,7 +149,6 @@ function update() {
     player.x = Math.floor(player.x / T + 1) * T + 0.1;
   }
 
-  // Çarpışma Y
   player.y += player.vy;
   player.grounded = false;
   if(player.vy > 0 && (isSolid(player.x + 2, player.y + player.h) || isSolid(player.x + player.w - 2, player.y + player.h))) {
@@ -156,16 +157,17 @@ function update() {
     player.grounded = true;
   }
 
-  // Blok Kırma Güncellemesi
+  // Blok Kırma Zamanlayıcısı
   if(breaking.active) {
     let tool = slots[player.sel];
-    let power = B[tool]?.power || 1;
+    let speed = B[tool]?.speed || 1;
     let target = world[breaking.y]?.[breaking.x];
 
     if(target && target !== 0) {
-      breaking.progress += power;
-      if(breaking.progress >= B[target].hardness) {
-        // Blok Kırıldı
+      breaking.progress += speed;
+      let totalReqTime = B[target].time;
+
+      if(breaking.progress >= totalReqTime) {
         world[breaking.y][breaking.x] = 0;
         inv[target] = (inv[target] || 0) + 1;
         breaking.active = false;
@@ -176,7 +178,7 @@ function update() {
   }
 }
 
-// Procedural Dokular
+// Dokular
 function drawTexture(id, x, y, size, targetCtx = ctx) {
   if(!id || id === 0) return;
 
@@ -201,8 +203,8 @@ function drawTexture(id, x, y, size, targetCtx = ctx) {
   } else if(id === 8) { // Tahta
     targetCtx.fillStyle = "#b08455"; targetCtx.fillRect(x, y, size, size);
   } else if(id === 9) { // Çubuk
-    targetCtx.fillStyle = "#674d32"; targetCtx.fillRect(x+12, y+6, 6, 20);
-  } else if(id === 10 || id === 11) { // Kazma
+    targetCtx.fillStyle = "#674d32"; targetCtx.fillRect(x+13, y+6, 6, 20);
+  } else if(id === 10 || id === 11) { // Kazmalar
     targetCtx.fillStyle = id === 10 ? "#b08455" : "#737373";
     targetCtx.fillRect(x+4, y+4, 24, 6);
     targetCtx.fillStyle = "#674d32"; targetCtx.fillRect(x+13, y+10, 5, 18);
@@ -214,34 +216,43 @@ function drawTexture(id, x, y, size, targetCtx = ctx) {
   }
 }
 
+// 2 Gözlü ve Kollu Steve
 function drawSteve(x, y) {
-  let legOffset = Math.sin(player.animFrame) * 6;
+  let anim = Math.sin(player.animFrame) * 7;
   
-  // Sol / Sağ Bacak Animasyonu
+  // Bacaklar
   ctx.fillStyle = "#2b2b7a"; 
-  ctx.fillRect(x + 3, y + 34, 7, 20 + legOffset);
-  ctx.fillRect(x + 12, y + 34, 7, 20 - legOffset);
+  ctx.fillRect(x + 3, y + 34, 7, 20 + anim);
+  ctx.fillRect(x + 12, y + 34, 7, 20 - anim);
 
   // Gövde
   ctx.fillStyle = "#00a8a8"; ctx.fillRect(x + 2, y + 16, 18, 18);
 
+  // Kollar (Hareketli)
+  ctx.fillStyle = "#cbb094"; 
+  ctx.fillRect(x - 3, y + 16 - anim, 5, 16);
+  ctx.fillRect(x + 20, y + 16 + anim, 5, 16);
+
   // Kafa
   ctx.fillStyle = "#cbb094"; ctx.fillRect(x + 3, y, 16, 16);
   ctx.fillStyle = "#4a2d18"; ctx.fillRect(x + 3, y, 16, 5); // Saç
-  ctx.fillStyle = "#2b2b7a"; ctx.fillRect(x + 13, y + 7, 3, 3); // Göz
+  
+  // 2 Adet Minecraft Gözü (Beyaz + Mavi Göz Bebeği)
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(x + 5, y + 7, 4, 3); ctx.fillRect(x + 13, y + 7, 4, 3);
+  ctx.fillStyle = "#2b2b7a"; ctx.fillRect(x + 7, y + 7, 2, 3); ctx.fillRect(x + 13, y + 7, 2, 3);
 }
 
 function draw() {
   let camX = player.x - cv.width / 2;
   let camY = player.y - cv.height / 2;
 
-  // Kamera Sol Sınır Koruması
+  // Kamera Harita Sınır Korumaları
   camX = Math.max(0, Math.min(MAP_W * T - cv.width, camX));
+  camY = Math.max(0, Math.min(MAP_H * T - cv.height, camY));
 
   ctx.fillStyle = "#78a7ff";
   ctx.fillRect(0, 0, cv.width, cv.height);
 
-  // Bloklar
   let startX = Math.max(0, Math.floor(camX / T));
   let endX = Math.min(MAP_W, Math.ceil((camX + cv.width) / T));
   let startY = Math.max(0, Math.floor(camY / T));
@@ -256,14 +267,14 @@ function draw() {
     }
   }
 
-  // Blok Kırma Efekti (Çatlak Animasyonu)
+  // Çatlak Animasyonu
   if(breaking.active) {
     let bx = breaking.x * T - camX;
     let by = breaking.y * T - camY;
     let target = world[breaking.y][breaking.x];
-    let ratio = breaking.progress / B[target].hardness;
+    let ratio = breaking.progress / B[target].time;
 
-    ctx.strokeStyle = `rgba(0,0,0,${0.3 + ratio * 0.6})`;
+    ctx.strokeStyle = `rgba(0,0,0,${0.2 + ratio * 0.7})`;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(bx + 4, by + 4); ctx.lineTo(bx + T - 4, by + T - 4);
@@ -292,7 +303,7 @@ function renderBar() {
   });
 }
 
-// Crafting Sistemi Mekaniği
+// Crafting
 const recipes = [
   { item: 8, count: 4, cost: { 4: 1 }, name: "Tahta (4x)" },
   { item: 9, count: 4, cost: { 8: 2 }, name: "Çubuk (4x)" },
@@ -324,11 +335,12 @@ function toggleCrafting() {
   }
 }
 
-// Fare Kontrolleri
+// Fare Mekaniği
 cv.onmousedown = e => {
   let camX = player.x - cv.width / 2;
   let camY = player.y - cv.height / 2;
   camX = Math.max(0, Math.min(MAP_W * T - cv.width, camX));
+  camY = Math.max(0, Math.min(MAP_H * T - cv.height, camY));
 
   let tx = Math.floor((e.clientX + camX) / T);
   let ty = Math.floor((e.clientY + camY) / T);
@@ -336,12 +348,12 @@ cv.onmousedown = e => {
   let dist = Math.hypot(tx * T - player.x, ty * T - player.y);
   if(dist > T * 6) return;
 
-  if(e.button === 0 && world[ty]?.[tx] !== 0) { // Sol Tık Kırma
+  if(e.button === 0 && world[ty]?.[tx] !== 0) {
     breaking.active = true;
     breaking.x = tx;
     breaking.y = ty;
     breaking.progress = 0;
-  } else if(e.button === 2) { // Sağ Tık Koyma
+  } else if(e.button === 2) {
     let activeItem = slots[player.sel];
     if(!B[activeItem].isTool && !B[activeItem].isItem && (inv[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
       world[ty][tx] = activeItem;
