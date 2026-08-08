@@ -25,7 +25,6 @@
       height: 100vh;
       image-rendering: pixelated;
     }
-    /* HUD Arayüzü */
     #ui {
       position: absolute;
       top: 15px;
@@ -56,7 +55,7 @@
       text-shadow: 1px 1px 2px #000;
     }
 
-    /* Envanter Modal (E Tuşu) */
+    /* Envanter & Crafting Modalı */
     #inventory-modal {
       display: none;
       position: absolute;
@@ -68,7 +67,7 @@
       border: 2px solid #38bdf8;
       border-radius: 12px;
       padding: 20px;
-      width: 380px;
+      width: 440px;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
       z-index: 20;
       color: #fff;
@@ -81,17 +80,46 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 6px;
     }
+    .section-title {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
     .inv-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      gap: 8px;
       margin-bottom: 12px;
     }
+    .inv-slot {
+      width: 50px;
+      height: 50px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: grab;
+    }
+    .inv-slot:active { cursor: grabbing; }
+    .inv-slot canvas { width: 32px; height: 32px; image-rendering: pixelated; }
+    .inv-slot b {
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      font-size: 10px;
+      color: #fff;
+      text-shadow: 1px 1px #000;
+    }
+
     .recipe-list {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      max-height: 180px;
+      max-height: 150px;
       overflow-y: auto;
     }
     .recipe-card {
@@ -99,14 +127,14 @@
       align-items: center;
       justify-content: space-between;
       background: rgba(30, 41, 59, 0.8);
-      padding: 8px 10px;
+      padding: 6px 10px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 6px;
       cursor: pointer;
       font-size: 12px;
     }
     .recipe-card.disabled { opacity: 0.4; cursor: not-allowed; }
-    .craft-btn { background: #0284c7; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .craft-btn { background: #0284c7; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -120,13 +148,17 @@
       <span id="time-display">☀️ Gündüz</span>
     </div>
     <div class="controls-hint">
-      [A/D] Yürü | [W/Space] Zıpla | [E] Envanter | [1-5] Slot Seç | [Sol Tık] Kır | [Sağ Tık] Koy
+      [A/D] Yürü | [W/Space] Tek Blok Zıpla | [E] Envanter & Sürükle | [1-5] Slot Seç | [Sol Tık] Kır | [Sağ Tık] Koy
     </div>
   </div>
 
   <div id="inventory-modal">
-    <h2>CRAFTING & ENVANTER</h2>
-    <div class="inv-grid" id="inv-grid"></div>
+    <h2>ENVANTER VE ÜRETİM</h2>
+    <div class="section-title">Hotbar (Hızlı Erişim - 5 Slot)</div>
+    <div class="inv-grid" id="modal-hotbar-grid"></div>
+    <div class="section-title">Ana Depo (Envanter)</div>
+    <div class="inv-grid" id="modal-storage-grid"></div>
+    <div class="section-title">Üretim Reçeteleri</div>
     <div class="recipe-list" id="recipe-list"></div>
   </div>
 
@@ -230,10 +262,34 @@ let player = {
 let camX = player.x;
 let camY = player.y;
 
+// Envanter ve Hotbar Yapısı
 const hotbar = [0, 0, 0, 0, 0];
-const inventoryStorage = { 1: 0, 2: 0, 3: 0, 4: 0, 8: 0, 9: 0, 10: 0, 11: 0 };
-const keys = {};
+const storage = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 12 Depo Slotu
+const itemCounts = {}; // Eşya miktarları havuzu
 
+function addPlayerItem(itemId, count = 1) {
+  itemCounts[itemId] = (itemCounts[itemId] || 0) + count;
+  
+  // Önce hotbar'a yerleştirmeyi dene
+  if (!hotbar.includes(itemId)) {
+    for (let i = 0; i < 5; i++) {
+      if (hotbar[i] === 0) {
+        hotbar[i] = itemId;
+        return;
+      }
+    }
+  }
+  
+  // Hotbar doluysa depoya koy
+  for (let i = 0; i < storage.length; i++) {
+    if (storage[i] === 0) {
+      storage[i] = itemId;
+      return;
+    }
+  }
+}
+
+const keys = {};
 let mining = { active: false, x: -1, y: -1, progress: 0 };
 
 window.addEventListener("keydown", e => {
@@ -244,8 +300,9 @@ window.addEventListener("keydown", e => {
     player.selectedSlot = parseInt(e.key) - 1;
   }
 
+  // TEK BLOK ZIOPLAMA FİZİĞİ (Zıplama yüksekliği tam 1 blok veya biraz altında sınırlandı)
   if ((k === "w" || k === " ") && player.grounded) {
-    player.vy = -8.2;
+    player.vy = -6.8; 
     player.grounded = false;
     timeOfDay = 0.0;
     updateTime(0);
@@ -313,8 +370,7 @@ function updatePhysics() {
       } else {
         mining.progress += speed;
         if (mining.progress >= ITEM_TYPES[target].time) {
-          inventoryStorage[target] = (inventoryStorage[target] || 0) + 1;
-          autoAssignToHotbar(target);
+          addPlayerItem(target, 1);
           world[mining.y][mining.x] = 0;
           mining.active = false;
         }
@@ -325,20 +381,9 @@ function updatePhysics() {
   }
 }
 
-function autoAssignToHotbar(itemId) {
-  if (hotbar.includes(itemId)) return;
-  for (let i = 0; i < 5; i++) {
-    if (hotbar[i] === 0) {
-      hotbar[i] = itemId;
-      break;
-    }
-  }
-}
-
-// MINECRAFT TARZI GELİŞMİŞ BLOK ÇİZİMİ
+// BLOK ÇİZİMİ
 function renderTile(id, x, y, size, targetCtx = ctx) {
   if (!id || id === 0) return;
-
   const info = ITEM_TYPES[id];
   
   if (info.isTool) {
@@ -355,52 +400,40 @@ function renderTile(id, x, y, size, targetCtx = ctx) {
     return;
   }
 
-  // 1. Ana Gövde Renk Dolgusu
   targetCtx.fillStyle = info.color;
   targetCtx.fillRect(x, y, size, size);
 
-  // 2. Minecraft Usulü 3D Kenar Işıkları ve Gölgeleri
   targetCtx.fillStyle = info.borderHighlight;
-  targetCtx.fillRect(x, y, size, 3); // Üst parlaklık
-  targetCtx.fillRect(x, y, 3, size); // Sol parlaklık
+  targetCtx.fillRect(x, y, size, 3);
+  targetCtx.fillRect(x, y, 3, size);
 
   targetCtx.fillStyle = info.darkColor;
-  targetCtx.fillRect(x, y + size - 3, size, 3); // Alt gölge
-  targetCtx.fillRect(x + size - 3, y, 3, size); // Sağ gölge
+  targetCtx.fillRect(x, y + size - 3, size, 3);
+  targetCtx.fillRect(x + size - 3, y, 3, size);
 
-  // 3. Bloğa Özel Doku ve Piksel Detayları
-  if (id === 1) { // Çimen Bloğu
-    targetCtx.fillStyle = "#866043"; // Altı toprak
+  if (id === 1) {
+    targetCtx.fillStyle = "#866043";
     targetCtx.fillRect(x + 3, y + 10, size - 6, size - 13);
     targetCtx.fillStyle = info.color;
-    // Çimen Püskülleri
     targetCtx.fillRect(x, y, size, 8);
     targetCtx.fillRect(x + 3, y + 8, 4, 4);
     targetCtx.fillRect(x + 11, y + 8, 5, 5);
-    targetCtx.fillRect(x + 20, y + 8, 4, 3);
-    targetCtx.fillRect(x + 26, y + 8, 4, 6);
-  } else if (id === 2 || id === 3) { // Toprak ve Taş Parçacıkları
+  } else if (id === 2 || id === 3) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 5, y + 6, 6, 5);
     targetCtx.fillRect(x + 18, y + 14, 7, 6);
-    targetCtx.fillRect(x + 8, y + 22, 5, 4);
-  } else if (id === 6 || id === 7) { // Kömür & Bakır Maden Damarları
-    targetCtx.fillStyle = info.darkColor; // Önce taş dokusu
+  } else if (id === 6 || id === 7) {
+    targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 5, y + 6, 6, 5);
-    targetCtx.fillRect(x + 18, y + 14, 7, 6);
-    // Parlak Cevher Parçaları
     targetCtx.fillStyle = info.oreColor;
     targetCtx.fillRect(x + 7, y + 8, 7, 7);
     targetCtx.fillRect(x + 17, y + 6, 6, 6);
-    targetCtx.fillRect(x + 12, y + 19, 8, 6);
-  } else if (id === 4) { // Ağaç Lifleri
+  } else if (id === 4) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 6, y + 3, 4, size - 6);
-    targetCtx.fillRect(x + 18, y + 3, 5, size - 6);
-  } else if (id === 5) { // Yaprak Bloğu Desenleri
+  } else if (id === 5) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 4, y + 4, 8, 8);
-    targetCtx.fillRect(x + 16, y + 16, 10, 10);
   }
 }
 
@@ -534,9 +567,8 @@ function renderCanvasHotbarUI() {
     let itemKey = hotbar[i];
     if (itemKey && itemKey !== 0) {
       renderTile(itemKey, sx + 8, sy + 8, 32, ctx);
-
       if (!ITEM_TYPES[itemKey].isTool) {
-        let count = inventoryStorage[itemKey] || 0;
+        let count = itemCounts[itemKey] || 0;
         ctx.fillStyle = "#fff";
         ctx.font = "bold 11px sans-serif";
         ctx.textAlign = "right";
@@ -545,6 +577,105 @@ function renderCanvasHotbarUI() {
       }
     }
   }
+}
+
+// SÜRÜKLE - BIRAK (DRAG & DROP) SİSTEMİ
+let draggedItemInfo = null; // { type: 'hotbar'/'storage', index: N }
+
+function buildInventoryUI() {
+  // 1. Hotbar Grid Oluşturma
+  const hbGrid = document.getElementById("modal-hotbar-grid");
+  hbGrid.innerHTML = "";
+  for (let i = 0; i < 5; i++) {
+    let slotDiv = document.createElement("div");
+    slotDiv.className = "inv-slot";
+    slotDiv.dataset.type = "hotbar";
+    slotDiv.dataset.index = i;
+
+    let itemKey = hotbar[i];
+    if (itemKey && itemKey !== 0) {
+      let c = document.createElement("canvas");
+      c.width = 32; c.height = 32;
+      renderTile(itemKey, 0, 0, 32, c.getContext("2d"));
+      slotDiv.appendChild(c);
+      if (!ITEM_TYPES[itemKey].isTool) {
+        slotDiv.innerHTML += `<b>${itemCounts[itemKey] || 0}</b>`;
+      }
+    }
+    setupDragAndDropEvents(slotDiv, 'hotbar', i);
+    hbGrid.appendChild(slotDiv);
+  }
+
+  // 2. Depo Storage Grid Oluşturma
+  const stGrid = document.getElementById("modal-storage-grid");
+  stGrid.innerHTML = "";
+  for (let i = 0; i < storage.length; i++) {
+    let slotDiv = document.createElement("div");
+    slotDiv.className = "inv-slot";
+    slotDiv.dataset.type = "storage";
+    slotDiv.dataset.index = i;
+
+    let itemKey = storage[i];
+    if (itemKey && itemKey !== 0) {
+      let c = document.createElement("canvas");
+      c.width = 32; c.height = 32;
+      renderTile(itemKey, 0, 0, 32, c.getContext("2d"));
+      slotDiv.appendChild(c);
+      if (!ITEM_TYPES[itemKey].isTool) {
+        slotDiv.innerHTML += `<b>${itemCounts[itemKey] || 0}</b>`;
+      }
+    }
+    setupDragAndDropEvents(slotDiv, 'storage', i);
+    stGrid.appendChild(slotDiv);
+  }
+
+  // 3. Reçete Listesi
+  const list = document.getElementById("recipe-list");
+  list.innerHTML = "";
+  craftingRecipes.forEach(r => {
+    let canCraft = Object.keys(r.cost).every(k => (itemCounts[k] || 0) >= r.cost[k]);
+    let card = document.createElement("div");
+    card.className = "recipe-card" + (canCraft ? "" : " disabled");
+    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">${canCraft ? "ÜRET" : "Eksik"}</span>`;
+    card.onclick = () => {
+      if (canCraft) {
+        Object.keys(r.cost).forEach(k => {
+          itemCounts[k] -= r.cost[k];
+        });
+        addPlayerItem(r.item, r.count);
+        buildInventoryUI();
+      }
+    };
+    list.appendChild(card);
+  });
+}
+
+function setupDragAndDropEvents(elem, type, index) {
+  elem.draggable = true;
+  elem.ondragstart = (e) => {
+    draggedItemInfo = { type, index };
+  };
+  elem.ondragover = (e) => e.preventDefault();
+  elem.ondrop = (e) => {
+    e.preventDefault();
+    if (!draggedItemInfo) return;
+
+    let srcType = draggedItemInfo.type;
+    let srcIdx = draggedItemInfo.index;
+
+    let sourceVal = srcType === 'hotbar' ? hotbar[srcIdx] : storage[srcIdx];
+    let targetVal = type === 'hotbar' ? hotbar[index] : storage[index];
+
+    // Değiş Tokoş (Swap)
+    if (srcType === 'hotbar') hotbar[srcIdx] = targetVal;
+    else storage[srcIdx] = targetVal;
+
+    if (type === 'hotbar') hotbar[index] = sourceVal;
+    else storage[index] = sourceVal;
+
+    draggedItemInfo = null;
+    buildInventoryUI();
+  };
 }
 
 const craftingRecipes = [
@@ -560,35 +691,7 @@ function toggleInventoryModal() {
   modal.style.display = isVisible ? "none" : "block";
 
   if (!isVisible) {
-    const invGrid = document.getElementById("inv-grid");
-    invGrid.innerHTML = "";
-    Object.keys(inventoryStorage).forEach(k => {
-      let count = inventoryStorage[k];
-      if (count > 0 || ITEM_TYPES[k].isTool) {
-        let div = document.createElement("div");
-        div.style.cssText = "background:rgba(30,41,59,0.8); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:6px; text-align:center; font-size:11px;";
-        div.innerHTML = `<div>${ITEM_TYPES[k].name}</div><b>${count} Adet</b>`;
-        invGrid.appendChild(div);
-      }
-    });
-
-    const list = document.getElementById("recipe-list");
-    list.innerHTML = "";
-    craftingRecipes.forEach(r => {
-      let canCraft = Object.keys(r.cost).every(k => (inventoryStorage[k] || 0) >= r.cost[k]);
-      let card = document.createElement("div");
-      card.className = "recipe-card" + (canCraft ? "" : " disabled");
-      card.innerHTML = `<span>${r.name}</span><span class="craft-btn">${canCraft ? "ÜRET" : "Eksik"}</span>`;
-      card.onclick = () => {
-        if (canCraft) {
-          Object.keys(r.cost).forEach(k => inventoryStorage[k] -= r.cost[k]);
-          inventoryStorage[r.item] = (inventoryStorage[r.item] || 0) + r.count;
-          autoAssignToHotbar(r.item);
-          toggleInventoryModal();
-        }
-      };
-      list.appendChild(card);
-    });
+    buildInventoryUI();
   }
 }
 
@@ -614,9 +717,9 @@ canvas.onmousedown = e => {
     mining.progress = 0;
   } else if (e.button === 2) {
     let activeItem = hotbar[player.selectedSlot];
-    if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && (inventoryStorage[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
+    if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && (itemCounts[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
       world[ty][tx] = activeItem;
-      inventoryStorage[activeItem]--;
+      itemCounts[activeItem]--;
     }
   }
 };
