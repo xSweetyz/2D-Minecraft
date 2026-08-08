@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2D Survival World</title>
+  <title>Terraria 2D Survival Edition</title>
   <style>
     * {
       margin: 0;
@@ -16,19 +16,20 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #07090e;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #000;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     #game {
       display: block;
       width: 100vw;
       height: 100vh;
+      image-rendering: pixelated;
     }
-    /* HUD */
+    /* HUD Arayüzü */
     #ui {
       position: absolute;
-      top: 16px;
-      left: 16px;
+      top: 15px;
+      left: 15px;
       color: #fff;
       pointer-events: none;
       z-index: 10;
@@ -37,81 +38,25 @@
       gap: 6px;
     }
     .hud-card {
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(10, 15, 30, 0.85);
       backdrop-filter: blur(8px);
       padding: 8px 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-weight: 600;
+      gap: 12px;
+      font-weight: bold;
       font-size: 13px;
     }
     .controls-hint {
       font-size: 11px;
-      color: #94a3b8;
-    }
-    
-    /* Hotbar - 5 Slot */
-    #hotbar-wrapper {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 8px;
-      background: rgba(15, 23, 42, 0.9);
-      backdrop-filter: blur(10px);
-      padding: 6px;
-      border: 2px solid rgba(255, 255, 255, 0.12);
-      border-radius: 14px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.7);
-      z-index: 10;
-    }
-    .slot {
-      width: 54px;
-      height: 54px;
-      border: 2px solid rgba(255, 255, 255, 0.08);
-      background: rgba(30, 41, 59, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      cursor: pointer;
-      border-radius: 10px;
-      transition: all 0.15s ease;
-    }
-    .slot.sel {
-      border-color: #38bdf8;
-      background: rgba(56, 189, 248, 0.2);
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
-      transform: translateY(-3px);
-    }
-    .slot canvas {
-      width: 38px;
-      height: 38px;
-      image-rendering: pixelated;
-    }
-    .slot b {
-      position: absolute;
-      bottom: 3px;
-      right: 5px;
-      font-size: 11px;
-      color: #fff;
+      color: #cbd5e1;
       text-shadow: 1px 1px 2px #000;
     }
-    .slot .key-num {
-      position: absolute;
-      top: 3px;
-      left: 5px;
-      font-size: 10px;
-      color: #64748b;
-      font-weight: bold;
-    }
 
-    /* Modal */
+    /* Envanter Modal (E Tuşu) */
     #inventory-modal {
       display: none;
       position: absolute;
@@ -119,14 +64,14 @@
       left: 50%;
       transform: translate(-50%, -50%);
       background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      border: 2px solid #38bdf8;
+      border-radius: 12px;
       padding: 20px;
-      width: 400px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      width: 380px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.9);
       z-index: 20;
-      color: #f8fafc;
+      color: #fff;
     }
     #inventory-modal h2 {
       font-size: 16px;
@@ -134,7 +79,7 @@
       margin-bottom: 12px;
       text-align: center;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 8px;
+      padding-bottom: 6px;
     }
     .inv-grid {
       display: grid;
@@ -146,22 +91,22 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      max-height: 200px;
+      max-height: 180px;
       overflow-y: auto;
     }
     .recipe-card {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(30, 41, 59, 0.6);
-      padding: 8px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 8px;
+      background: rgba(30, 41, 59, 0.8);
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
     }
     .recipe-card.disabled { opacity: 0.4; cursor: not-allowed; }
-    .craft-btn { background: #0284c7; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .craft-btn { background: #0284c7; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -175,14 +120,12 @@
       <span id="time-display">☀️ Gündüz</span>
     </div>
     <div class="controls-hint">
-      [A/D] Yürü | [W/Space] Zıpla | [E] Envanter | [Sol Tık] Kır | [Sağ Tık] Koy
+      [A/D] Yürü | [W/Space] Zıpla | [E] Envanter | [1-5] Slot Seç | [Sol Tık] Kır | [Sağ Tık] Koy
     </div>
   </div>
 
-  <div id="hotbar-wrapper"></div>
-
   <div id="inventory-modal">
-    <h2>ENVANTER & CRAFTING</h2>
+    <h2>CRAFTING & ENVANTER</h2>
     <div class="inv-grid" id="inv-grid"></div>
     <div class="recipe-list" id="recipe-list"></div>
   </div>
@@ -198,52 +141,56 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-const TILE_SIZE = 36;
-const MAP_W = 250;
-const MAP_H = 100;
+// Terraria Tipi Yakın Yakınlaştırma & Boyutlar
+const TILE_SIZE = 32;
+const ZOOM = 1.85; // Ekranı yaklaştırma oranı
+const MAP_W = 200;
+const MAP_H = 120;
 
+// Blok & Eşya Tanımları
 const ITEM_TYPES = {
   0: { name: "Hava", solid: false },
-  1: { name: "Çimen", solid: true, time: 40, color: "#4ade80", darkColor: "#15803d" },
-  2: { name: "Toprak", solid: true, time: 50, color: "#854d0e", darkColor: "#713f12" },
-  3: { name: "Taş", solid: true, time: 180, needTool: true, color: "#64748b", darkColor: "#475569" },
-  4: { name: "Ağaç Gövdesi", solid: true, time: 120, color: "#b45309", darkColor: "#78350f" },
-  5: { name: "Yaprak", solid: false, time: 20, color: "#22c55e", darkColor: "#16a34a" },
-  6: { name: "Kömür Cevheri", solid: true, time: 240, needTool: true, color: "#334155", darkColor: "#1e293b" },
-  7: { name: "Bakır Cevheri", solid: true, time: 300, needTool: true, color: "#f97316", darkColor: "#c2410c" },
-  8: { name: "Ahşap Blok", solid: true, time: 80, color: "#d97706", darkColor: "#92400e" },
-  9: { name: "Ahşap Çubuk", solid: false, isItem: true, color: "#78350f" },
-  10: { name: "Tahta Kazma", solid: false, isTool: true, speed: 3.5, color: "#d97706" },
-  11: { name: "Taş Kazma", solid: false, isTool: true, speed: 7.0, color: "#94a3b8" }
+  1: { name: "Çimen", solid: true, time: 30, color: "#22c55e", darkColor: "#15803d" },
+  2: { name: "Toprak", solid: true, time: 40, color: "#854d0e", darkColor: "#543109" },
+  3: { name: "Taş", solid: true, time: 140, needTool: true, color: "#64748b", darkColor: "#334155" },
+  4: { name: "Ağaç Gövdesi", solid: true, time: 80, color: "#a16207", darkColor: "#713f12" },
+  5: { name: "Yaprak", solid: false, time: 15, color: "#16a34a", darkColor: "#116e33" },
+  6: { name: "Kömür", solid: true, time: 180, needTool: true, color: "#1e293b", darkColor: "#0f172a" },
+  7: { name: "Bakır", solid: true, time: 220, needTool: true, color: "#ea580c", darkColor: "#9a3412" },
+  8: { name: "Ahşap Blok", solid: true, time: 60, color: "#d97706", darkColor: "#92400e" },
+  9: { name: "Çubuk", solid: false, isItem: true, color: "#78350f" },
+  10: { name: "Tahta Kazma", solid: false, isTool: true, speed: 4.0, color: "#d97706" },
+  11: { name: "Taş Kazma", solid: false, isTool: true, speed: 8.0, color: "#94a3b8" }
 };
 
 let world = [];
-let surfaceY = 32;
+let surfaceY = 40;
 
 function initWorld() {
   world = [];
   for (let y = 0; y < MAP_H; y++) {
     world[y] = [];
     for (let x = 0; x < MAP_W; x++) {
-      let curSurface = surfaceY + Math.floor(Math.sin(x * 0.08) * 4 + Math.cos(x * 0.03) * 2);
+      let curSurface = surfaceY + Math.floor(Math.sin(x * 0.08) * 5 + Math.cos(x * 0.04) * 3);
       if (y < curSurface) {
         world[y][x] = 0;
       } else if (y === curSurface) {
         world[y][x] = 1;
-      } else if (y < curSurface + 8) {
+      } else if (y < curSurface + 10) {
         world[y][x] = 2;
       } else {
         let r = Math.random();
-        if (r < 0.04) world[y][x] = 6;
-        else if (r < 0.07) world[y][x] = 7;
+        if (r < 0.05) world[y][x] = 6;
+        else if (r < 0.08) world[y][x] = 7;
         else world[y][x] = 3;
       }
     }
   }
 
-  for (let x = 10; x < MAP_W - 10; x += Math.floor(Math.random() * 6) + 6) {
+  // Ağaçlar
+  for (let x = 8; x < MAP_W - 8; x += Math.floor(Math.random() * 5) + 5) {
     if (Math.random() > 0.3) {
-      let curSurface = surfaceY + Math.floor(Math.sin(x * 0.08) * 4 + Math.cos(x * 0.03) * 2);
+      let curSurface = surfaceY + Math.floor(Math.sin(x * 0.08) * 5 + Math.cos(x * 0.04) * 3);
       let treeH = Math.floor(Math.random() * 3) + 4;
       for (let h = 1; h <= treeH; h++) {
         if (curSurface - h >= 0) world[curSurface - h][x] = 4;
@@ -267,28 +214,31 @@ function updateTime(amount) {
   document.getElementById("time-display").innerText = timeOfDay < 0.5 ? "☀️ Gündüz" : "🌙 Gece";
 }
 
-// OYUNCU (Yumuşak Hızlanma Fizikleri)
+// OYUNCU FİZİĞİ & POZİSYON
 let player = {
   x: 20 * TILE_SIZE,
   y: (surfaceY - 4) * TILE_SIZE,
-  w: 20,
-  h: 46,
+  w: 18,
+  h: 42,
   vx: 0,
   vy: 0,
-  accX: 0.8,     // Yumuşak İvme
-  maxSpeed: 3.2, // Kontrollü Yürüme Hızı
-  friction: 0.78,// Kayma Dengesi
+  accX: 0.6,
+  maxSpeed: 2.8,
+  friction: 0.8,
   grounded: false,
-  facing: 1,     // 1: Sağ, -1: Sol
+  facing: 1, // 1: Sağ, -1: Sol
   selectedSlot: 0,
   animFrame: 0
 };
+
+// Kamera Takip Koordinatları
+let camX = player.x;
+let camY = player.y;
 
 const hotbar = [0, 0, 0, 0, 0];
 const inventoryStorage = { 1: 0, 2: 0, 3: 0, 4: 0, 8: 0, 9: 0, 10: 0, 11: 0 };
 const keys = {};
 
-let particles = [];
 let mining = { active: false, x: -1, y: -1, progress: 0 };
 
 window.addEventListener("keydown", e => {
@@ -299,9 +249,8 @@ window.addEventListener("keydown", e => {
     player.selectedSlot = parseInt(e.key) - 1;
   }
 
-  // Dengeli Zıplama Fiziği
   if ((k === "w" || k === " ") && player.grounded) {
-    player.vy = -9.2;
+    player.vy = -8.2;
     player.grounded = false;
     timeOfDay = 0.0;
     updateTime(0);
@@ -322,24 +271,20 @@ function isSolidBlock(px, py) {
 }
 
 function updatePhysics() {
-  // Yatay Hareket Hesabı
   if (keys["a"] || keys["arrowleft"]) {
     player.vx -= player.accX;
     player.facing = -1;
-    updateTime(0.0006);
+    updateTime(0.0005);
   } else if (keys["d"] || keys["arrowright"]) {
     player.vx += player.accX;
     player.facing = 1;
-    updateTime(0.0006);
+    updateTime(0.0005);
   } else {
     player.vx *= player.friction;
   }
 
-  // Maksimum Hız Sınırı
   player.vx = Math.max(-player.maxSpeed, Math.min(player.maxSpeed, player.vx));
-
-  // Yerçekimi
-  player.vy += 0.48;
+  player.vy += 0.42; // Dengeli yerçekimi
 
   if (Math.abs(player.vx) > 0.2 && player.grounded) player.animFrame += 0.2;
   else player.animFrame = 0;
@@ -364,7 +309,7 @@ function updatePhysics() {
     player.grounded = true;
   }
 
-  // Kırma İşlemi
+  // Kırma Mantığı
   if (mining.active) {
     let activeItem = hotbar[player.selectedSlot];
     let speed = ITEM_TYPES[activeItem]?.speed || 1.0;
@@ -398,177 +343,210 @@ function autoAssignToHotbar(itemId) {
   }
 }
 
-// HD RENDERER (Slotlar ve Bloklar Düzeltildi)
+// BLOK VE EŞYA ÇİZİMLERİ
 function renderTile(id, x, y, size, targetCtx = ctx) {
   if (!id || id === 0) return;
 
   const info = ITEM_TYPES[id];
   
-  if (info.isTool) { // Kazma Görseli
+  if (info.isTool) { // Kazma İkonu
     targetCtx.fillStyle = info.color;
-    targetCtx.fillRect(x + 4, y + 6, size - 8, 6);
+    targetCtx.fillRect(x + 4, y + 6, size - 8, 5);
     targetCtx.fillStyle = "#78350f";
-    targetCtx.fillRect(x + size / 2 - 2, y + 12, 5, size - 16);
+    targetCtx.fillRect(x + size / 2 - 2, y + 10, 4, size - 14);
     return;
   }
 
-  if (info.isItem) { // Çubuk Görseli
+  if (info.isItem) { // Çubuk
     targetCtx.fillStyle = info.color;
-    targetCtx.fillRect(x + size / 2 - 2, y + 4, 5, size - 8);
+    targetCtx.fillRect(x + size / 2 - 2, y + 4, 4, size - 8);
     return;
   }
 
-  // Standart Bloklar
+  // Blok Çizimi & Terraria Tarzı Detaylar
   targetCtx.fillStyle = info.color;
-  targetCtx.beginPath();
-  targetCtx.roundRect(x, y, size, size, 3);
-  targetCtx.fill();
+  targetCtx.fillRect(x, y, size, size);
 
   targetCtx.fillStyle = info.darkColor;
-  if (id === 1) { // Çimen Tepesi
+  if (id === 1) { // Çimen Püskülleri
     targetCtx.fillRect(x, y, size, 6);
-  } else if (id === 2 || id === 3 || id === 6 || id === 7) {
-    targetCtx.fillRect(x + 4, y + 4, 6, 6);
-    targetCtx.fillRect(x + size - 10, y + size - 10, 6, 6);
-  } else if (id === 4) {
-    targetCtx.fillRect(x + 4, y, 4, size);
+    targetCtx.fillRect(x + 4, y + 6, 4, 4);
+    targetCtx.fillRect(x + 16, y + 6, 5, 3);
+  } else if (id === 2 || id === 3 || id === 6 || id === 7) { // Taş/Maden Doku
+    targetCtx.fillRect(x + 3, y + 3, 5, 5);
+    targetCtx.fillRect(x + size - 9, y + size - 9, 6, 6);
+    targetCtx.fillRect(x + 12, y + 18, 4, 4);
+  } else if (id === 4) { // Ağaç Kabuğu
+    targetCtx.fillRect(x + 3, y, 4, size);
+    targetCtx.fillRect(x + size - 7, y, 3, size);
   }
 }
 
-function renderPlayerHD(screenX, screenY) {
-  let anim = Math.sin(player.animFrame) * 5;
+// TERRARIA TİPİ DÜZGÜN (2 GÖZLÜ) KARAKTER ÇİZİMİ
+function renderPlayerTerraria(screenX, screenY) {
+  let anim = Math.sin(player.animFrame) * 4;
 
   ctx.save();
   ctx.translate(screenX + player.w / 2, screenY + player.h / 2);
   if (player.facing === -1) ctx.scale(-1, 1);
 
-  // Bacaklar
-  ctx.fillStyle = "#1e293b";
-  ctx.fillRect(-7, 8, 5, 15 + anim);
-  ctx.fillRect(2, 8, 5, 15 - anim);
-
-  // Gövde
-  ctx.fillStyle = "#0284c7";
-  ctx.beginPath();
-  ctx.roundRect(-8, -8, 16, 18, 3);
-  ctx.fill();
-
-  // Kollar
-  ctx.fillStyle = "#f3d5b5";
-  ctx.fillRect(-11, -6 - anim * 0.5, 4, 12);
-  ctx.fillRect(7, -6 + anim * 0.5, 4, 12);
-
-  // Kafa
-  ctx.fillStyle = "#f3d5b5";
-  ctx.beginPath();
-  ctx.roundRect(-7, -22, 15, 14, 3);
-  ctx.fill();
-
-  // Saç
+  // 1. Ayaklar / Çizmeler
   ctx.fillStyle = "#451a03";
-  ctx.fillRect(-7, -22, 15, 4);
+  ctx.fillRect(-6, 12 + anim, 5, 8);
+  ctx.fillRect(2, 12 - anim, 5, 8);
 
-  // Göz
+  // 2. Pantolon / Bacaklar
+  ctx.fillStyle = "#1e3a8a";
+  ctx.fillRect(-6, 4, 5, 9);
+  ctx.fillRect(2, 4, 5, 9);
+
+  // 3. Tişört / Gövde
+  ctx.fillStyle = "#dc2626";
+  ctx.fillRect(-7, -8, 14, 13);
+
+  // 4. Kollar
+  ctx.fillStyle = "#fca5a5";
+  ctx.fillRect(-10, -6 - anim * 0.5, 4, 10);
+  ctx.fillRect(6, -6 + anim * 0.5, 4, 10);
+
+  // 5. Yüz / Ten
+  ctx.fillStyle = "#fca5a5";
+  ctx.fillRect(-6, -21, 13, 13);
+
+  // 6. DÜZGÜN 2 GÖZ (Terraria Style)
   ctx.fillStyle = "#0f172a";
-  ctx.fillRect(2, -17, 3, 3);
+  ctx.fillRect(-2, -16, 2, 4); // Sol Göz
+  ctx.fillRect(3, -16, 2, 4);  // Sağ Göz
+
+  // 7. Saç
+  ctx.fillStyle = "#78350f";
+  ctx.fillRect(-7, -23, 15, 4);
+  ctx.fillRect(-7, -20, 3, 5);
 
   ctx.restore();
 }
 
 function render() {
-  let camX = player.x - canvas.width / 2;
-  let camY = player.y - canvas.height / 2;
+  // Yumuşak Kamera Takibi (Smooth Follow)
+  camX += (player.x - camX) * 0.1;
+  camY += (player.y - camY) * 0.1;
 
-  camX = Math.max(0, Math.min(MAP_W * TILE_SIZE - canvas.width, camX));
-  camY = Math.max(0, Math.min(MAP_H * TILE_SIZE - canvas.height, camY));
+  ctx.save();
+  ctx.scale(ZOOM, ZOOM);
 
-  // Gökyüzü Gradient
-  let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  let viewW = canvas.width / ZOOM;
+  let viewH = canvas.height / ZOOM;
+
+  let drawCamX = camX - viewW / 2;
+  let drawCamY = camY - viewH / 2;
+
+  drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, drawCamX));
+  drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, drawCamY));
+
+  // Gökyüzü Renk Geçişi
+  let skyGrad = ctx.createLinearGradient(0, 0, 0, viewH);
   if (timeOfDay < 0.5) {
-    skyGrad.addColorStop(0, "#38bdf8");
-    skyGrad.addColorStop(1, "#bae6fd");
+    skyGrad.addColorStop(0, "#0284c7");
+    skyGrad.addColorStop(1, "#7dd3fc");
   } else {
     skyGrad.addColorStop(0, "#020617");
     skyGrad.addColorStop(1, "#0f172a");
   }
   ctx.fillStyle = skyGrad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, viewW, viewH);
 
-  let startX = Math.max(0, Math.floor(camX / TILE_SIZE));
-  let endX = Math.min(MAP_W, Math.ceil((camX + canvas.width) / TILE_SIZE));
-  let startY = Math.max(0, Math.floor(camY / TILE_SIZE));
-  let endY = Math.min(MAP_H, Math.ceil((camY + canvas.height) / TILE_SIZE));
+  // Dünya Bloklarını Çiz
+  let startX = Math.max(0, Math.floor(drawCamX / TILE_SIZE));
+  let endX = Math.min(MAP_W, Math.ceil((drawCamX + viewW) / TILE_SIZE));
+  let startY = Math.max(0, Math.floor(drawCamY / TILE_SIZE));
+  let endY = Math.min(MAP_H, Math.ceil((drawCamY + viewH) / TILE_SIZE));
 
   for (let y = startY; y < endY; y++) {
     for (let x = startX; x < endX; x++) {
       let tile = world[y][x];
       if (tile !== 0) {
-        renderTile(tile, x * TILE_SIZE - camX, y * TILE_SIZE - camY, TILE_SIZE);
+        renderTile(tile, x * TILE_SIZE - drawCamX, y * TILE_SIZE - drawCamY, TILE_SIZE);
       }
     }
   }
 
   // Kırma Efekti
   if (mining.active) {
-    let bx = mining.x * TILE_SIZE - camX;
-    let by = mining.y * TILE_SIZE - camY;
+    let bx = mining.x * TILE_SIZE - drawCamX;
+    let by = mining.y * TILE_SIZE - drawCamY;
     let target = world[mining.y][mining.x];
     let ratio = mining.progress / ITEM_TYPES[target].time;
 
-    ctx.strokeStyle = "rgba(255,255,255,0.8)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1.5;
     ctx.strokeRect(bx, by, TILE_SIZE, TILE_SIZE);
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
     ctx.fillRect(bx, by, TILE_SIZE * ratio, TILE_SIZE);
   }
 
-  renderPlayerHD(player.x - camX, player.y - camY);
+  // Karakteri Çiz
+  renderPlayerTerraria(player.x - drawCamX, player.y - drawCamY);
 
-  // Işık Halesi
+  // Işık Halesi / Dinamik Gece Karartması
   let lightGrad = ctx.createRadialGradient(
-    player.x - camX + player.w / 2, player.y - camY + player.h / 2, 20,
-    player.x - camX + player.w / 2, player.y - camY + player.h / 2, 200
+    player.x - drawCamX + player.w / 2, player.y - drawCamY + player.h / 2, 15,
+    player.x - drawCamX + player.w / 2, player.y - drawCamY + player.h / 2, 160
   );
   lightGrad.addColorStop(0, "rgba(255,255,255,0)");
-  lightGrad.addColorStop(1, timeOfDay >= 0.5 ? "rgba(2, 6, 23, 0.8)" : "rgba(0,0,0,0)");
+  lightGrad.addColorStop(1, timeOfDay >= 0.5 ? "rgba(2, 6, 23, 0.85)" : "rgba(0,0,0,0)");
   ctx.fillStyle = lightGrad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, viewW, viewH);
 
-  renderHotbarUI();
+  ctx.restore();
+
+  // Ekran Arayüzünü ve Düzeltilmiş Alt Slotları Çiz
+  renderCanvasHotbarUI();
 }
 
-// HOTBAR UI FIX (Eşyalar Görünür Yapıldı)
-function renderHotbarUI() {
-  const wrapper = document.getElementById("hotbar-wrapper");
-  wrapper.innerHTML = "";
+// KESİN ÇÖZÜM: CANVAS ÜZERİNDE DÜZGÜN ALT SLOTLAR
+function renderCanvasHotbarUI() {
+  const slotSize = 48;
+  const gap = 8;
+  const startX = (canvas.width - (5 * slotSize + 4 * gap)) / 2;
+  const startY = canvas.height - slotSize - 16;
 
   for (let i = 0; i < 5; i++) {
+    let sx = startX + i * (slotSize + gap);
+    let sy = startY;
+
+    // Slot Arka Planı
+    ctx.fillStyle = i === player.selectedSlot ? "rgba(56, 189, 248, 0.3)" : "rgba(15, 23, 42, 0.85)";
+    ctx.fillRect(sx, sy, slotSize, slotSize);
+
+    // Slot Çerçevesi
+    ctx.strokeStyle = i === player.selectedSlot ? "#38bdf8" : "rgba(255, 255, 255, 0.2)";
+    ctx.lineWidth = i === player.selectedSlot ? 3 : 1.5;
+    ctx.strokeRect(sx, sy, slotSize, slotSize);
+
+    // Tuş Numarası (1-5)
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "bold 10px sans-serif";
+    ctx.fillText(i + 1, sx + 4, sy + 12);
+
+    // Eşya Görseli
     let itemKey = hotbar[i];
-    let slot = document.createElement("div");
-    slot.className = "slot" + (i === player.selectedSlot ? " sel" : "");
-    slot.onclick = () => player.selectedSlot = i;
-
-    let c = document.createElement("canvas");
-    c.width = 38;
-    c.height = 38;
-    let cCtx = c.getContext("2d");
-
     if (itemKey && itemKey !== 0) {
-      renderTile(itemKey, 3, 3, 32, cCtx);
-    }
+      renderTile(itemKey, sx + 8, sy + 8, 32, ctx);
 
-    slot.appendChild(c);
-    slot.innerHTML += `<span class="key-num">${i + 1}</span>`;
-    
-    if (itemKey && !ITEM_TYPES[itemKey].isTool) {
-      let count = inventoryStorage[itemKey] || 0;
-      slot.innerHTML += `<b>${count}</b>`;
+      // Sayı / Adet
+      if (!ITEM_TYPES[itemKey].isTool) {
+        let count = inventoryStorage[itemKey] || 0;
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 11px sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(count, sx + slotSize - 4, sy + slotSize - 4);
+        ctx.textAlign = "left";
+      }
     }
-
-    wrapper.appendChild(slot);
   }
 }
 
+// CRAFTING & ENVANTER (E Tuşu)
 const craftingRecipes = [
   { item: 8, count: 4, cost: { 4: 1 }, name: "Ahşap Blok (4x)" },
   { item: 9, count: 4, cost: { 8: 2 }, name: "Ahşap Çubuk (4x)" },
@@ -614,24 +592,28 @@ function toggleInventoryModal() {
   }
 }
 
+// ETKİLEŞİM & FARE KONTROLLERİ
 canvas.onmousedown = e => {
-  let camX = player.x - canvas.width / 2;
-  let camY = player.y - canvas.height / 2;
-  camX = Math.max(0, Math.min(MAP_W * TILE_SIZE - canvas.width, camX));
-  camY = Math.max(0, Math.min(MAP_H * TILE_SIZE - canvas.height, camY));
+  let viewW = canvas.width / ZOOM;
+  let viewH = canvas.height / ZOOM;
+  let drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, camX - viewW / 2));
+  let drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, camY - viewH / 2));
 
-  let tx = Math.floor((e.clientX + camX) / TILE_SIZE);
-  let ty = Math.floor((e.clientY + camY) / TILE_SIZE);
+  let clickX = (e.clientX / ZOOM) + drawCamX;
+  let clickY = (e.clientY / ZOOM) + drawCamY;
+
+  let tx = Math.floor(clickX / TILE_SIZE);
+  let ty = Math.floor(clickY / TILE_SIZE);
 
   let dist = Math.hypot(tx * TILE_SIZE - player.x, ty * TILE_SIZE - player.y);
-  if (dist > TILE_SIZE * 7) return;
+  if (dist > TILE_SIZE * 8) return;
 
-  if (e.button === 0 && world[ty]?.[tx] !== 0) {
+  if (e.button === 0 && world[ty]?.[tx] !== 0) { // Sol Tık
     mining.active = true;
     mining.x = tx;
     mining.y = ty;
     mining.progress = 0;
-  } else if (e.button === 2) {
+  } else if (e.button === 2) { // Sağ Tık
     let activeItem = hotbar[player.selectedSlot];
     if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && (inventoryStorage[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
       world[ty][tx] = activeItem;
