@@ -3,39 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2D Minecraft Solo</title>
+  <title>2D Terraria Solo World</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; user-select: none; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #78a7ff; font-family: 'Courier New', Courier, monospace; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #111; font-family: 'Courier New', Courier, monospace; }
     #game { display: block; width: 100vw; height: 100vh; }
     #ui { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 15px; pointer-events: none; z-index: 10; }
     
-    /* Hotbar Hizalama Fix */
-    #hotbar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; background: #8b8b8b; padding: 4px; border: 4px solid #3c3c3c; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; }
-    .slot { width: 48px; height: 48px; border: 3px solid #373737; background: #8b8b8b; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
-    .slot.sel { border-color: #ffffff; background: #a0a0a0; }
+    /* Terraria Style Hotbar */
+    #hotbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; background: rgba(30, 30, 30, 0.85); padding: 6px; border: 3px solid #5a4027; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); z-index: 10; }
+    .slot { width: 48px; height: 48px; border: 2px solid #3c2a1a; background: #2a1f15; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; border-radius: 2px; }
+    .slot.sel { border-color: #ffe100; background: #4a3725; box-shadow: inset 0 0 8px #ffe100; }
     .slot canvas { width: 32px; height: 32px; image-rendering: pixelated; }
     .slot b { position: absolute; bottom: 2px; right: 4px; font-size: 11px; color: #fff; text-shadow: 1px 1px 0 #000; }
     
-    /* Crafting UI */
-    #craft-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #c6c6c6; border: 4px solid #3c3c3c; padding: 16px; width: 340px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); z-index: 20; }
-    #craft-menu h3 { margin-bottom: 12px; color: #3c3c3c; font-size: 18px; text-align: center; }
-    .recipe-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
-    .recipe-item { display: flex; align-items: center; justify-content: space-between; background: #8b8b8b; padding: 8px; border: 2px solid #3c3c3c; cursor: pointer; color: #fff; }
-    .recipe-item:hover { background: #9e9e9e; }
-    .recipe-item.disabled { opacity: 0.5; cursor: not-allowed; }
+    /* Terraria Crafting UI */
+    #craft-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2a1f15; border: 4px solid #5a4027; padding: 16px; width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); z-index: 20; color: #fff; }
+    #craft-menu h3 { margin-bottom: 12px; color: #ffe100; font-size: 18px; text-align: center; text-shadow: 1px 1px 0 #000; }
+    .recipe-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+    .recipe-item { display: flex; align-items: center; justify-content: space-between; background: #3d2d1e; padding: 10px; border: 2px solid #5a4027; cursor: pointer; color: #fff; font-weight: bold; }
+    .recipe-item:hover { background: #523d29; }
+    .recipe-item.disabled { opacity: 0.4; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
   <canvas id="game"></canvas>
   <div id="ui">
-    <div>❤️ 20/20 | 🍗 20/20</div>
-    <div style="font-size:12px; margin-top:4px; opacity:0.9;">[A/D] Yürü | [W/Space] Zıpla | [E] Crafting | [Sol Tık Basılı Tut] Kır | [Sağ Tık] Koy</div>
+    <div>❤️ 100/100 | 🛡️ Terraria World</div>
+    <div style="font-size:12px; margin-top:4px; opacity:0.9;">[A/D] Yürü | [W/Space] Zıpla | [E] Üretim (Crafting) | [Sol Tık] Kır | [Sağ Tık] Koy</div>
   </div>
 
   <div id="craft-menu">
-    <h3>CRAFTING (ÜRETİM)</h3>
+    <h3>TERRARIA CRAFTING</h3>
     <div class="recipe-list" id="recipes"></div>
   </div>
 
@@ -48,61 +48,69 @@ ctx.imageSmoothingEnabled = false;
 function resize(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
 window.addEventListener("resize", resize); resize();
 
-const T = 36;
-const MAP_W = 200, MAP_H = 80;
+const T = 32; // Blok Boyutu
+const MAP_W = 400, MAP_H = 120; // Devasa Harita
 
-// Blok Sertlik Tanımları
+// Terraria Blok Tanımları
 const B = {
   0: { name: "Hava", solid: 0 },
-  1: { name: "Çimen", solid: 1, time: 90 },
-  2: { name: "Toprak", solid: 1, time: 120 },   // 2 Saniye
-  3: { name: "Taş", solid: 1, time: 300, needPick: true }, // Yumrukla kırılamaz
-  4: { name: "Meşe Odunu", solid: 1, time: 300 }, // 5 Saniye
-  5: { name: "Yaprak", solid: 0, time: 20 },
-  6: { name: "Kömür Madeni", solid: 1, time: 360, needPick: true },
-  7: { name: "Demir Madeni", solid: 1, time: 420, needPick: true },
-  8: { name: "Tahta", solid: 1, time: 180 },
-  9: { name: "Çubuk", solid: 0, isItem: true },
+  1: { name: "Çimen Toprak", solid: 1, time: 60 },
+  2: { name: "Toprak", solid: 1, time: 80 },
+  3: { name: "Taş", solid: 1, time: 240, needPick: true },
+  4: { name: "Ağaç Gövdesi", solid: 1, time: 180 },
+  5: { name: "Ağaç Yaprağı", solid: 0, time: 20 },
+  6: { name: "Kömür Cevheri", solid: 1, time: 300, needPick: true },
+  7: { name: "Bakır/Demir Cevheri", solid: 1, time: 360, needPick: true },
+  8: { name: "Ahşap Blok", solid: 1, time: 120 },
+  9: { name: "Ahşap Çubuk", solid: 0, isItem: true },
   10:{ name: "Tahta Kazma", solid: 0, isTool: true, speed: 3 },
   11:{ name: "Taş Kazma", solid: 0, isTool: true, speed: 6 }
 };
 
+// Dünya Oluşturma (Terraria Tarzı Yüzey ve Mağaralar)
 let world = [];
+let surfaceY = 35;
+
 for(let y = 0; y < MAP_H; y++) {
   world[y] = [];
   for(let x = 0; x < MAP_W; x++) {
-    if(y < 25) world[y][x] = 0;
-    else if(y === 25) world[y][x] = 1;
-    else if(y < 30) world[y][x] = 2;
+    // Hafif dalgalı arazi
+    let currentSurface = surfaceY + Math.floor(Math.sin(x * 0.1) * 3);
+    
+    if(y < currentSurface) world[y][x] = 0;
+    else if(y === currentSurface) world[y][x] = 1;
+    else if(y < currentSurface + 8) world[y][x] = 2;
     else {
       let r = Math.random();
-      if(r < 0.04) world[y][x] = 6;
-      else if(r < 0.07) world[y][x] = 7;
+      if(r < 0.05) world[y][x] = 6;
+      else if(r < 0.09) world[y][x] = 7;
       else world[y][x] = 3;
     }
   }
 }
 
 // Ağaçlar
-for(let x = 10; x < MAP_W - 10; x += 12) {
+for(let x = 10; x < MAP_W - 10; x += 8) {
   if(Math.random() > 0.3) {
-    for(let h = 1; h <= 4; h++) world[25 - h][x] = 4;
+    let currentSurface = surfaceY + Math.floor(Math.sin(x * 0.1) * 3);
+    for(let h = 1; h <= 5; h++) world[currentSurface - h][x] = 4;
     for(let lx = -2; lx <= 2; lx++) {
-      for(let ly = -6; ly <= -4; ly++) {
-        if(x + lx >= 0 && x + lx < MAP_W && world[25 + ly][x + lx] === 0) world[25 + ly][x + lx] = 5;
+      for(let ly = -8; ly <= -5; ly++) {
+        if(world[currentSurface + ly]?.[x + lx] === 0) world[currentSurface + ly][x + lx] = 5;
       }
     }
   }
 }
 
 let player = {
-  x: 15 * T, y: 22 * T, w: 22, h: 54,
+  x: 20 * T, y: (surfaceY - 3) * T, w: 20, h: 48,
   vx: 0, vy: 0, grounded: false,
   sel: 0, animFrame: 0, isMoving: false
 };
 
+// Sıfırdan Başlangıç Envanteri (KAZMA VERİLMİYOR!)
 const inv = { 1: 0, 2: 0, 3: 0, 4: 0, 8: 0, 9: 0, 10: 0, 11: 0 };
-const slots = [1, 2, 3, 4, 8, 9, 10, 11];
+const slots = [1, 2, 3, 4, 8, 9, 10, 11]; // Slotlar
 const keys = {};
 
 let breaking = { active: false, x: -1, y: -1, progress: 0 };
@@ -123,21 +131,21 @@ function isSolid(px, py) {
 function update() {
   player.isMoving = false;
 
-  if(keys["a"] || keys["arrowleft"]) { player.vx = -3.6; player.isMoving = true; }
-  else if(keys["d"] || keys["arrowright"]) { player.vx = 3.6; player.isMoving = true; }
-  else player.vx *= 0.7;
+  if(keys["a"] || keys["arrowleft"]) { player.vx = -4.0; player.isMoving = true; }
+  else if(keys["d"] || keys["arrowright"]) { player.vx = 4.0; player.isMoving = true; }
+  else player.vx *= 0.65;
 
   if((keys["w"] || keys[" "] || keys["arrowup"]) && player.grounded) {
-    player.vy = -10.5;
+    player.vy = -11.0;
     player.grounded = false;
   }
 
-  player.vy += 0.5;
+  player.vy += 0.55; // Fizik / Yerçekimi
 
-  if(player.isMoving && player.grounded) player.animFrame += 0.2;
+  if(player.isMoving && player.grounded) player.animFrame += 0.25;
   else player.animFrame = 0;
 
-  // Çarpışma
+  // Çarpışma Testi
   player.x += player.vx;
   if(player.vx > 0 && (isSolid(player.x + player.w, player.y) || isSolid(player.x + player.w, player.y + player.h - 2))) {
     player.x = Math.floor((player.x + player.w) / T) * T - player.w - 0.1;
@@ -154,7 +162,7 @@ function update() {
     player.grounded = true;
   }
 
-  // Kırma Hesabı
+  // Kırma İşlemleri
   if(breaking.active) {
     let tool = slots[player.sel];
     let speed = B[tool]?.speed || 1;
@@ -162,8 +170,7 @@ function update() {
 
     if(target && target !== 0) {
       if(B[target].needPick && !B[tool]?.isTool) {
-        // Kazmasız taş/maden kırılamaz
-        breaking.progress = 0;
+        breaking.progress = 0; // Kazma yoksa taş kırılamaz
       } else {
         breaking.progress += speed;
         if(breaking.progress >= B[target].time) {
@@ -178,75 +185,70 @@ function update() {
   }
 }
 
-// Detaylı Piksel Dokular
+// Terraria Piksel Dokuları Render Fonksiyonu
 function drawTexture(id, x, y, size, targetCtx = ctx) {
   if(!id || id === 0) return;
 
-  if(id === 1) { // Çimen
-    targetCtx.fillStyle = "#795538"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#5c8e32"; targetCtx.fillRect(x, y, size, 10);
-    targetCtx.fillStyle = "#4c7828"; 
-    targetCtx.fillRect(x+4, y+8, 4, 4); targetCtx.fillRect(x+16, y+8, 6, 4); targetCtx.fillRect(x+26, y+8, 4, 4);
+  if(id === 1) { // Çimenli Toprak
+    targetCtx.fillStyle = "#5d3e23"; targetCtx.fillRect(x, y, size, size);
+    targetCtx.fillStyle = "#488820"; targetCtx.fillRect(x, y, size, 8);
+    targetCtx.fillStyle = "#386b18"; targetCtx.fillRect(x+2, y+6, 6, 4); targetCtx.fillRect(x+16, y+6, 8, 4);
   } else if(id === 2) { // Toprak
-    targetCtx.fillStyle = "#795538"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#553a24";
-    targetCtx.fillRect(x+4, y+6, 6, 6); targetCtx.fillRect(x+20, y+18, 8, 6); targetCtx.fillRect(x+10, y+26, 6, 6);
+    targetCtx.fillStyle = "#5d3e23"; targetCtx.fillRect(x, y, size, size);
+    targetCtx.fillStyle = "#3e2815"; targetCtx.fillRect(x+4, y+4, 6, 6); targetCtx.fillRect(x+18, y+16, 8, 6);
   } else if(id === 3) { // Taş
-    targetCtx.fillStyle = "#737373"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#525252";
-    targetCtx.fillRect(x+2, y+4, 10, 6); targetCtx.fillRect(x+18, y+12, 12, 8); targetCtx.fillRect(x+6, y+22, 14, 6);
-  } else if(id === 4) { // Meşe Odunu
-    targetCtx.fillStyle = "#674d32"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#3e2d1c"; targetCtx.fillRect(x+6, y, 4, size); targetCtx.fillRect(x+22, y, 4, size);
+    targetCtx.fillStyle = "#555563"; targetCtx.fillRect(x, y, size, size);
+    targetCtx.fillStyle = "#3a3a47"; targetCtx.fillRect(x+2, y+4, 10, 6); targetCtx.fillRect(x+16, y+14, 12, 8);
+  } else if(id === 4) { // Ağaç
+    targetCtx.fillStyle = "#4a2f18"; targetCtx.fillRect(x, y, size, size);
+    targetCtx.fillStyle = "#2e1c0d"; targetCtx.fillRect(x+4, y, 4, size); targetCtx.fillRect(x+20, y, 4, size);
   } else if(id === 5) { // Yaprak
-    targetCtx.fillStyle = "#3a6821"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#284a15"; 
-    targetCtx.fillRect(x+2, y+2, 8, 8); targetCtx.fillRect(x+18, y+14, 10, 10);
+    targetCtx.fillStyle = "#2e6818"; targetCtx.fillRect(x, y, size, size);
+    targetCtx.fillStyle = "#1e480e"; targetCtx.fillRect(x+2, y+2, 8, 8); targetCtx.fillRect(x+16, y+14, 10, 10);
   } else if(id === 6) { // Kömür
     drawTexture(3, x, y, size, targetCtx);
-    targetCtx.fillStyle = "#1c1c1c"; targetCtx.fillRect(x+8, y+8, 8, 8); targetCtx.fillRect(x+20, y+20, 6, 6);
-  } else if(id === 7) { // Demir
+    targetCtx.fillStyle = "#111115"; targetCtx.fillRect(x+6, y+6, 8, 8); targetCtx.fillRect(x+18, y+18, 8, 8);
+  } else if(id === 7) { // Bakır/Demir
     drawTexture(3, x, y, size, targetCtx);
-    targetCtx.fillStyle = "#d8af93"; targetCtx.fillRect(x+8, y+8, 8, 8); targetCtx.fillRect(x+20, y+20, 6, 6);
-  } else if(id === 8) { // Tahta
-    targetCtx.fillStyle = "#b08455"; targetCtx.fillRect(x, y, size, size);
-    targetCtx.fillStyle = "#8a633c"; targetCtx.fillRect(x, y+8, size, 2); targetCtx.fillRect(x, y+24, size, 2);
+    targetCtx.fillStyle = "#b86230"; targetCtx.fillRect(x+6, y+6, 8, 8); targetCtx.fillRect(x+18, y+18, 8, 8);
+  } else if(id === 8) { // Ahşap
+    targetCtx.fillStyle = "#805229"; targetCtx.fillRect(x, y, size, size);
+    targetCtx.fillStyle = "#523318"; targetCtx.fillRect(x, y+6, size, 2); targetCtx.fillRect(x, y+20, size, 2);
   } else if(id === 9) { // Çubuk
-    targetCtx.fillStyle = "#674d32"; targetCtx.fillRect(x+13, y+6, 6, 20);
-  } else if(id === 10 || id === 11) { // Kazma Simgeleri
-    targetCtx.fillStyle = id === 10 ? "#b08455" : "#737373";
-    targetCtx.fillRect(x+4, y+4, 24, 6);
-    targetCtx.fillStyle = "#674d32"; targetCtx.fillRect(x+13, y+10, 5, 18);
+    targetCtx.fillStyle = "#4a2f18"; targetCtx.fillRect(x+12, y+4, 6, 22);
+  } else if(id === 10 || id === 11) { // Kazmalar
+    targetCtx.fillStyle = id === 10 ? "#805229" : "#555563";
+    targetCtx.fillRect(x+2, y+2, 26, 6);
+    targetCtx.fillStyle = "#4a2f18"; targetCtx.fillRect(x+12, y+8, 5, 20);
   }
 
   if(!B[id].isTool && !B[id].isItem) {
-    targetCtx.strokeStyle = "rgba(0,0,0,0.15)";
+    targetCtx.strokeStyle = "rgba(0,0,0,0.25)";
     targetCtx.strokeRect(x, y, size, size);
   }
 }
 
-// Steve Çizimi
-function drawSteve(x, y) {
-  let anim = Math.sin(player.animFrame) * 7;
+// Terraria Karakter Çizimi
+function drawTerrariaPlayer(x, y) {
+  let anim = Math.sin(player.animFrame) * 6;
   
   // Bacaklar
-  ctx.fillStyle = "#2b2b7a"; 
-  ctx.fillRect(x + 3, y + 34, 7, 20 + anim);
-  ctx.fillRect(x + 12, y + 34, 7, 20 - anim);
+  ctx.fillStyle = "#223859"; 
+  ctx.fillRect(x + 2, y + 30, 6, 18 + anim);
+  ctx.fillRect(x + 11, y + 30, 6, 18 - anim);
 
-  // Gövde
-  ctx.fillStyle = "#00a8a8"; ctx.fillRect(x + 2, y + 16, 18, 18);
+  // Gövde (Kırmızı Terraria Zırhı/Kıyafeti)
+  ctx.fillStyle = "#a82e2e"; ctx.fillRect(x + 2, y + 14, 15, 16);
 
   // Kollar
-  ctx.fillStyle = "#cbb094"; 
-  ctx.fillRect(x - 3, y + 16 - anim, 5, 16);
-  ctx.fillRect(x + 20, y + 16 + anim, 5, 16);
+  ctx.fillStyle = "#dca078"; 
+  ctx.fillRect(x - 3, y + 14 - anim, 4, 14);
+  ctx.fillRect(x + 18, y + 14 + anim, 4, 14);
 
-  // Kafa & Gözler
-  ctx.fillStyle = "#cbb094"; ctx.fillRect(x + 3, y, 16, 16);
-  ctx.fillStyle = "#4a2d18"; ctx.fillRect(x + 3, y, 16, 5);
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(x + 5, y + 7, 4, 3); ctx.fillRect(x + 13, y + 7, 4, 3);
-  ctx.fillStyle = "#2b2b7a"; ctx.fillRect(x + 7, y + 7, 2, 3); ctx.fillRect(x + 13, y + 7, 2, 3);
+  // Kafa
+  ctx.fillStyle = "#dca078"; ctx.fillRect(x + 2, y, 15, 14);
+  ctx.fillStyle = "#59361a"; ctx.fillRect(x + 2, y, 15, 4); // Saç
+  ctx.fillStyle = "#222"; ctx.fillRect(x + 12, y + 5, 3, 3); // Göz
 }
 
 function draw() {
@@ -256,7 +258,11 @@ function draw() {
   camX = Math.max(0, Math.min(MAP_W * T - cv.width, camX));
   camY = Math.max(0, Math.min(MAP_H * T - cv.height, camY));
 
-  ctx.fillStyle = "#78a7ff";
+  // Derinliğe Göre Değişen Arkaplan (Gökyüzü -> Mağara)
+  let depthRatio = player.y / (MAP_H * T);
+  if(depthRatio < 0.35) ctx.fillStyle = "#639bff"; // Gökyüzü
+  else ctx.fillStyle = "#181310"; // Terraria Derin Mağara Duvarı
+  
   ctx.fillRect(0, 0, cv.width, cv.height);
 
   let startX = Math.max(0, Math.floor(camX / T));
@@ -273,30 +279,27 @@ function draw() {
     }
   }
 
-  // 4 Aşamalı Detaylı Çatlak Animasyonu
+  // Çatlak Animasyonu
   if(breaking.active) {
     let bx = breaking.x * T - camX;
     let by = breaking.y * T - camY;
     let target = world[breaking.y][breaking.x];
     let ratio = breaking.progress / B[target].time;
 
-    ctx.strokeStyle = "rgba(0,0,0,0.85)";
+    ctx.strokeStyle = "#000";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    
-    if(ratio > 0.2) { ctx.moveTo(bx+18, by+4); ctx.lineTo(bx+18, by+32); }
-    if(ratio > 0.4) { ctx.moveTo(bx+4, by+18); ctx.lineTo(bx+32, by+18); }
-    if(ratio > 0.6) { ctx.moveTo(bx+6, by+6); ctx.lineTo(bx+30, by+30); }
-    if(ratio > 0.8) { ctx.moveTo(bx+30, by+6); ctx.lineTo(bx+6, by+30); }
-    
+    if(ratio > 0.25) { ctx.moveTo(bx+4, by+4); ctx.lineTo(bx+28, by+28); }
+    if(ratio > 0.50) { ctx.moveTo(bx+28, by+4); ctx.lineTo(bx+4, by+28); }
+    if(ratio > 0.75) { ctx.moveTo(bx+16, by+2); ctx.lineTo(bx+16, by+30); }
     ctx.stroke();
   }
 
-  drawSteve(player.x - camX, player.y - camY);
+  drawTerrariaPlayer(player.x - camX, player.y - camY);
   renderBar();
 }
 
-// Hotbar'ı Çizen Fonksiyon
+// Hotbar Slotlarını Kesin Çizen Yapı
 function renderBar() {
   let h = document.getElementById("hotbar"); 
   h.innerHTML = "";
@@ -310,7 +313,7 @@ function renderBar() {
     let cCtx = c.getContext("2d");
     cCtx.imageSmoothingEnabled = false;
     
-    // Simgeyi doğrudan Canvas üzerine çizdir
+    // Slotun içine dokuyu anında çiz
     drawTexture(id, 0, 0, 32, cCtx);
 
     d.appendChild(c);
@@ -319,10 +322,10 @@ function renderBar() {
   });
 }
 
-// Crafting Menüsü
+// Terraria Crafting Mekaniği
 const recipes = [
-  { item: 8, count: 4, cost: { 4: 1 }, name: "Tahta (4x)" },
-  { item: 9, count: 4, cost: { 8: 2 }, name: "Çubuk (4x)" },
+  { item: 8, count: 4, cost: { 4: 1 }, name: "Ahşap Blok (4x)" },
+  { item: 9, count: 4, cost: { 8: 2 }, name: "Ahşap Çubuk (4x)" },
   { item: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma" },
   { item: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma" }
 ];
@@ -338,7 +341,7 @@ function toggleCrafting() {
       let canCraft = Object.keys(r.cost).every(k => (inv[k] || 0) >= r.cost[k]);
       let itemDiv = document.createElement("div");
       itemDiv.className = "recipe-item" + (canCraft ? "" : " disabled");
-      itemDiv.innerHTML = `<span>${r.name}</span><b>${canCraft ? "ÜRET" : "Eksik"}</b>`;
+      itemDiv.innerHTML = `<span>${r.name}</span><b>${canCraft ? "CRAFT" : "Eksik"}</b>`;
       itemDiv.onclick = () => {
         if(canCraft) {
           Object.keys(r.cost).forEach(k => inv[k] -= r.cost[k]);
@@ -351,7 +354,7 @@ function toggleCrafting() {
   }
 }
 
-// Tıklama Mekaniği
+// Fare Kontrolleri
 cv.onmousedown = e => {
   let camX = player.x - cv.width / 2;
   let camY = player.y - cv.height / 2;
@@ -362,7 +365,7 @@ cv.onmousedown = e => {
   let ty = Math.floor((e.clientY + camY) / T);
 
   let dist = Math.hypot(tx * T - player.x, ty * T - player.y);
-  if(dist > T * 6) return;
+  if(dist > T * 7) return;
 
   if(e.button === 0 && world[ty]?.[tx] !== 0) {
     breaking.active = true;
