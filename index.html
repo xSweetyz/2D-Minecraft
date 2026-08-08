@@ -332,58 +332,103 @@ let player = {
 let camX = player.x;
 let camY = player.y;
 
-const hotbar = [0, 0, 0, 0, 0];
-const storage = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-const itemCounts = {};
+// Slot yapısı: Her slot {id, count} tutacak (Doğru Stack ve Temizlik Sistemi)
+const hotbar = [
+  { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+];
+const storage = [
+  { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+  { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+  { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+];
 
-function addPlayerItem(itemId, count = 1) {
-  for (let c = 0; c < count; c++) {
-    let placed = false;
-    for (let i = 0; i < 5; i++) {
-      if (hotbar[i] === 0) {
-        hotbar[i] = itemId;
-        placed = true;
-        break;
-      }
-    }
-    if (!placed) {
-      for (let i = 0; i < storage.length; i++) {
-        if (storage[i] === 0) {
-          storage[i] = itemId;
-          placed = true;
-          break;
-        }
-      }
-    }
-  }
-  updateItemCounts();
-}
+const itemCounts = {};
 
 function updateItemCounts() {
   for (let key in itemCounts) delete itemCounts[key];
-  const processSlot = (id) => {
-    if (id && id !== 0) {
-      itemCounts[id] = (itemCounts[id] || 0) + 1;
+  
+  const tally = (slot) => {
+    if (slot.id && slot.id !== 0 && slot.count > 0) {
+      itemCounts[slot.id] = (itemCounts[slot.id] || 0) + slot.count;
+    } else {
+      slot.id = 0;
+      slot.count = 0;
     }
   };
-  hotbar.forEach(processSlot);
-  storage.forEach(processSlot);
+
+  hotbar.forEach(tally);
+  storage.forEach(tally);
+}
+
+function addPlayerItem(itemId, count = 1) {
+  // 1. Önce hotbar'da aynı eşyadan var mı kontrol et, varsa üstüne ekle (Stack)
+  for (let i = 0; i < hotbar.length; i++) {
+    if (hotbar[i].id === itemId) {
+      hotbar[i].count += count;
+      updateItemCounts();
+      return;
+    }
+  }
+
+  // 2. Depoda aynı eşyadan var mı kontrol et, varsa üstüne ekle (Stack)
+  for (let i = 0; i < storage.length; i++) {
+    if (storage[i].id === itemId) {
+      storage[i].count += count;
+      updateItemCounts();
+      return;
+    }
+  }
+
+  // 3. Eşya yoksa hotbar'da boş slot ara
+  for (let i = 0; i < hotbar.length; i++) {
+    if (hotbar[i].id === 0 || hotbar[i].count <= 0) {
+      hotbar[i].id = itemId;
+      hotbar[i].count = count;
+      updateItemCounts();
+      return;
+    }
+  }
+
+  // 4. Hotbar doluysa depoda boş slot ara
+  for (let i = 0; i < storage.length; i++) {
+    if (storage[i].id === 0 || storage[i].count <= 0) {
+      storage[i].id = itemId;
+      storage[i].count = count;
+      updateItemCounts();
+      return;
+    }
+  }
 }
 
 function consumePlayerItem(itemId, amount = 1) {
   let remaining = amount;
+
+  // Önce depodan harca
   for (let i = storage.length - 1; i >= 0; i--) {
-    if (remaining > 0 && storage[i] === itemId) {
-      storage[i] = 0;
-      remaining--;
+    if (remaining > 0 && storage[i].id === itemId) {
+      let take = Math.min(storage[i].count, remaining);
+      storage[i].count -= take;
+      remaining -= take;
+      if (storage[i].count <= 0) {
+        storage[i].id = 0;
+        storage[i].count = 0;
+      }
     }
   }
+
+  // Sonra hotbar'dan harca
   for (let i = hotbar.length - 1; i >= 0; i--) {
-    if (remaining > 0 && hotbar[i] === itemId) {
-      hotbar[i] = 0;
-      remaining--;
+    if (remaining > 0 && hotbar[i].id === itemId) {
+      let take = Math.min(hotbar[i].count, remaining);
+      hotbar[i].count -= take;
+      remaining -= take;
+      if (hotbar[i].count <= 0) {
+        hotbar[i].id = 0;
+        hotbar[i].count = 0;
+      }
     }
   }
+
   updateItemCounts();
 }
 
@@ -407,7 +452,6 @@ window.addEventListener("keyup", e => {
   keys[e.key.toLowerCase()] = false;
 });
 
-// Dokunmatik Buton Olayları
 function bindTouchButton(id, actionDown, actionUp) {
   const btn = document.getElementById(id);
   if (!btn) return;
@@ -427,12 +471,12 @@ bindTouchButton("btn-jump", () => {
 });
 bindTouchButton("btn-inv", () => toggleInventoryModal());
 bindTouchButton("btn-action", () => {
-  // Mobilde ortadaki bloğu kırma/koyma işlemi
   let tx = Math.floor((player.x + player.w/2) / TILE_SIZE);
   let ty = Math.floor((player.y + player.h/2) / TILE_SIZE);
   if (world[ty]?.[tx] !== 0) {
+    let mined = world[ty][tx];
     world[ty][tx] = 0;
-    addPlayerItem(world[ty][tx], 1);
+    addPlayerItem(mined, 1);
   }
 });
 
@@ -481,7 +525,8 @@ function updatePhysics() {
   }
 
   if (mining.active) {
-    let activeItem = hotbar[player.selectedSlot];
+    let activeSlot = hotbar[player.selectedSlot];
+    let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
     let speed = ITEM_TYPES[activeItem]?.speed || 1.0;
     let target = world[mining.y]?.[mining.x];
 
@@ -665,15 +710,14 @@ function renderCanvasHotbarUI() {
     ctx.font = "bold 10px sans-serif";
     ctx.fillText(i + 1, sx + 4, sy + 12);
 
-    let itemKey = hotbar[i];
-    if (itemKey && itemKey !== 0) {
-      renderTile(itemKey, sx + 8, sy + 8, 32, ctx);
-      if (!ITEM_TYPES[itemKey].isTool) {
-        let count = itemCounts[itemKey] || 0;
+    let slot = hotbar[i];
+    if (slot.id && slot.id !== 0 && slot.count > 0) {
+      renderTile(slot.id, sx + 8, sy + 8, 32, ctx);
+      if (!ITEM_TYPES[slot.id].isTool) {
         ctx.fillStyle = "#fff";
         ctx.font = "bold 11px sans-serif";
         ctx.textAlign = "right";
-        ctx.fillText(count, sx + slotSize - 4, sy + slotSize - 4);
+        ctx.fillText(slot.count, sx + slotSize - 4, sy + slotSize - 4);
         ctx.textAlign = "left";
       }
     }
@@ -690,18 +734,18 @@ function buildInventoryUI() {
   for (let i = 0; i < 5; i++) {
     let slotDiv = document.createElement("div");
     slotDiv.className = "inv-slot";
-    let itemKey = hotbar[i];
-    if (itemKey && itemKey !== 0) {
+    let slot = hotbar[i];
+    if (slot.id && slot.id !== 0 && slot.count > 0) {
       let c = document.createElement("canvas");
       c.width = 32; c.height = 32;
-      renderTile(itemKey, 0, 0, 32, c.getContext("2d"));
+      renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
       slotDiv.appendChild(c);
-      if (!ITEM_TYPES[itemKey].isTool) {
+      if (!ITEM_TYPES[slot.id].isTool) {
         let b = document.createElement("b");
-        b.innerText = itemCounts[itemKey] || 0;
+        b.innerText = slot.count;
         slotDiv.appendChild(b);
       }
-      slotDiv.dataset.itemName = ITEM_TYPES[itemKey].name;
+      slotDiv.dataset.itemName = ITEM_TYPES[slot.id].name;
     }
     setupTooltipEvents(slotDiv);
     setupDragAndDropEvents(slotDiv, 'hotbar', i);
@@ -713,18 +757,18 @@ function buildInventoryUI() {
   for (let i = 0; i < storage.length; i++) {
     let slotDiv = document.createElement("div");
     slotDiv.className = "inv-slot";
-    let itemKey = storage[i];
-    if (itemKey && itemKey !== 0) {
+    let slot = storage[i];
+    if (slot.id && slot.id !== 0 && slot.count > 0) {
       let c = document.createElement("canvas");
       c.width = 32; c.height = 32;
-      renderTile(itemKey, 0, 0, 32, c.getContext("2d"));
+      renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
       slotDiv.appendChild(c);
-      if (!ITEM_TYPES[itemKey].isTool) {
+      if (!ITEM_TYPES[slot.id].isTool) {
         let b = document.createElement("b");
-        b.innerText = itemCounts[itemKey] || 0;
+        b.innerText = slot.count;
         slotDiv.appendChild(b);
       }
-      slotDiv.dataset.itemName = ITEM_TYPES[itemKey].name;
+      slotDiv.dataset.itemName = ITEM_TYPES[slot.id].name;
     }
     setupTooltipEvents(slotDiv);
     setupDragAndDropEvents(slotDiv, 'storage', i);
@@ -775,14 +819,15 @@ function setupDragAndDropEvents(elem, type, index) {
     if (!draggedItemInfo) return;
     let srcType = draggedItemInfo.type;
     let srcIdx = draggedItemInfo.index;
-    let sourceVal = srcType === 'hotbar' ? hotbar[srcIdx] : storage[srcIdx];
-    let targetVal = type === 'hotbar' ? hotbar[index] : storage[index];
 
-    if (srcType === 'hotbar') hotbar[srcIdx] = targetVal;
-    else storage[srcIdx] = targetVal;
+    let sourceSlot = srcType === 'hotbar' ? hotbar[srcIdx] : storage[srcIdx];
+    let targetSlot = type === 'hotbar' ? hotbar[index] : storage[index];
 
-    if (type === 'hotbar') hotbar[index] = sourceVal;
-    else storage[index] = sourceVal;
+    let temp = { id: sourceSlot.id, count: sourceSlot.count };
+    sourceSlot.id = targetSlot.id;
+    sourceSlot.count = targetSlot.count;
+    targetSlot.id = temp.id;
+    targetSlot.count = temp.count;
 
     draggedItemInfo = null;
     buildInventoryUI();
@@ -825,7 +870,8 @@ canvas.onmousedown = e => {
     mining.y = ty;
     mining.progress = 0;
   } else if (e.button === 2) {
-    let activeItem = hotbar[player.selectedSlot];
+    let activeSlot = hotbar[player.selectedSlot];
+    let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
     if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && world[ty]?.[tx] === 0) {
       world[ty][tx] = activeItem;
       consumePlayerItem(activeItem, 1);
