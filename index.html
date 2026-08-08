@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Terraria 2D Survival Edition - Mobile & PC</title>
+  <title>Terraria 2D Survival Edition</title>
   <style>
     * {
       margin: 0;
@@ -62,31 +62,31 @@
       text-shadow: 1px 1px 2px #000;
     }
 
-    /* Mobil Kontroller */
+    /* Mobil Kontroller Paneli */
     #mobile-controls {
       display: none;
       position: absolute;
-      bottom: 20px;
+      bottom: 15px;
       left: 0;
       width: 100%;
-      padding: 0 25px;
+      padding: 0 20px;
       justify-content: space-between;
       z-index: 15;
       pointer-events: none;
     }
     .touch-group {
       display: flex;
-      gap: 20px;
+      gap: 15px;
       pointer-events: auto;
     }
     .touch-btn {
-      width: 75px;
-      height: 75px;
+      width: 65px;
+      height: 65px;
       background: rgba(15, 23, 42, 0.85);
       border: 3px solid rgba(56, 189, 248, 0.8);
       border-radius: 50%;
       color: #fff;
-      font-size: 26px;
+      font-size: 22px;
       font-weight: bold;
       display: flex;
       align-items: center;
@@ -100,6 +100,7 @@
       transform: scale(0.9);
     }
 
+    /* Envanter Modalı */
     #inventory-modal {
       display: none;
       position: absolute;
@@ -111,9 +112,9 @@
       border: 2px solid #38bdf8;
       border-radius: 14px;
       padding: 15px;
-      width: 95%;
-      max-width: 450px;
-      max-height: 85vh;
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
       overflow-y: auto;
       box-shadow: 0 0 40px rgba(0,0,0,0.9);
       z-index: 20;
@@ -121,50 +122,43 @@
       touch-action: auto;
     }
     #inventory-modal h2 {
-      font-size: 15px;
+      font-size: 14px;
       color: #38bdf8;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       text-align: center;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 6px;
+      padding-bottom: 5px;
     }
     .section-title {
-      font-size: 11px;
+      font-size: 10px;
       color: #94a3b8;
       margin-bottom: 4px;
       font-weight: bold;
-    }
-    .inventory-container {
-      display: flex;
-      gap: 10px;
-    }
-    .main-inv-area {
-      flex: 1;
     }
     .inv-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .inv-slot {
-      width: 48px;
-      height: 48px;
+      width: 42px;
+      height: 42px;
       background: rgba(30, 41, 59, 0.85);
       border: 2px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
       cursor: pointer;
     }
-    .inv-slot canvas { width: 30px; height: 30px; image-rendering: pixelated; pointer-events: none; }
+    .inv-slot canvas { width: 26px; height: 26px; image-rendering: pixelated; pointer-events: none; }
     .inv-slot b {
       position: absolute;
       bottom: 2px;
-      right: 4px;
-      font-size: 10px;
+      right: 3px;
+      font-size: 9px;
       color: #fff;
       text-shadow: 1px 1px #000;
       pointer-events: none;
@@ -173,8 +167,8 @@
     .recipe-list {
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      max-height: 110px;
+      gap: 4px;
+      max-height: 100px;
       overflow-y: auto;
     }
     .recipe-card {
@@ -182,14 +176,14 @@
       align-items: center;
       justify-content: space-between;
       background: rgba(30, 41, 59, 0.8);
-      padding: 6px 8px;
+      padding: 5px 8px;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 10px;
     }
     .recipe-card.disabled { opacity: 0.4; cursor: not-allowed; }
-    .craft-btn { background: #0284c7; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+    .craft-btn { background: #0284c7; color: #fff; padding: 3px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -198,7 +192,7 @@
 
   <div id="ui">
     <div class="hud-card">
-      <span id="health-display">❤️ 100 / 100</span>
+      <span id="health-display">❤️ 100</span>
       <span style="opacity: 0.3;">|</span>
       <span id="time-display">☀️ Gündüz</span>
       <span style="opacity: 0.3;">|</span>
@@ -223,15 +217,11 @@
 
   <div id="inventory-modal">
     <h2>ENVANTER VE ÜRETİM</h2>
-    <div class="inventory-container">
-      <div class="main-inv-area">
-        <div class="section-title">Hotbar (Hızlı Erişim - 5 Slot)</div>
-        <div class="inv-grid" id="modal-hotbar-grid"></div>
-        <div class="section-title">Ana Depo (16 Slot)</div>
-        <div class="inv-grid" id="modal-storage-grid"></div>
-      </div>
-    </div>
-    <div class="section-title" style="margin-top: 6px;">Üretim Reçeteleri</div>
+    <div class="section-title">Hızlı Erişim (Hotbar)</div>
+    <div class="inv-grid" id="modal-hotbar-grid"></div>
+    <div class="section-title">Ana Depo</div>
+    <div class="inv-grid" id="modal-storage-grid"></div>
+    <div class="section-title" style="margin-top: 4px;">Üretim Reçeteleri</div>
     <div class="recipe-list" id="recipe-list"></div>
   </div>
 
@@ -253,8 +243,7 @@ window.addEventListener("resize", resize);
 resize();
 
 const TILE_SIZE = 32;
-// Mobilde daha geniş görüş açısı (daha küçük zoom) sağlandı
-const ZOOM = isMobile ? 1.2 : 1.6; 
+const ZOOM = isMobile ? 1.4 : 1.6; // Mobilde daha geniş görüş açısı
 const MAP_W = 200;
 const MAP_H = 120;
 
@@ -265,8 +254,6 @@ const ITEM_TYPES = {
   3: { name: "Taş", solid: true, time: 140, needTool: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3" },
   4: { name: "Ağaç Gövdesi", solid: true, time: 80, color: "#674627", darkColor: "#3d2815", borderHighlight: "#8a5e36" },
   5: { name: "Yaprak", solid: false, time: 15, color: "#2d8a1e", darkColor: "#1a5710", borderHighlight: "#45b033" },
-  6: { name: "Kömür", solid: true, time: 180, needTool: true, isOre: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#171717" },
-  7: { name: "Bakır", solid: true, time: 220, needTool: true, isOre: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#f97316" },
   8: { name: "Ahşap Blok", solid: true, time: 60, color: "#a16207", darkColor: "#713f12", borderHighlight: "#ca8a04" },
   9: { name: "Çubuk", solid: false, isItem: true, color: "#78350f" },
   10: { name: "Tahta Kazma", solid: false, isTool: true, speed: 4.0, color: "#d97706" }
@@ -281,18 +268,10 @@ function initWorld() {
     world[y] = [];
     for (let x = 0; x < MAP_W; x++) {
       let curSurface = surfaceY + Math.floor(Math.sin(x * 0.08) * 5 + Math.cos(x * 0.04) * 3);
-      if (y < curSurface) {
-        world[y][x] = 0;
-      } else if (y === curSurface) {
-        world[y][x] = 1;
-      } else if (y < curSurface + 10) {
-        world[y][x] = 2;
-      } else {
-        let r = Math.random();
-        if (r < 0.06) world[y][x] = 6;
-        else if (r < 0.09) world[y][x] = 7;
-        else world[y][x] = 3;
-      }
+      if (y < curSurface) world[y][x] = 0;
+      else if (y === curSurface) world[y][x] = 1;
+      else if (y < curSurface + 10) world[y][x] = 2;
+      else world[y][x] = 3;
     }
   }
 
@@ -308,7 +287,6 @@ function initWorld() {
 }
 initWorld();
 
-let timeOfDay = 0;
 let player = {
   x: 20 * TILE_SIZE,
   y: (surfaceY - 4) * TILE_SIZE,
@@ -321,15 +299,14 @@ let player = {
   friction: 0.8,
   grounded: false,
   facing: 1,
-  selectedSlot: 0,
-  animFrame: 0
+  selectedSlot: 0
 };
 
 let camX = player.x;
 let camY = player.y;
 
 const hotbar = [{ id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }];
-const storage = Array(16).fill({ id: 0, count: 0 });
+const storage = Array(12).fill({ id: 0, count: 0 });
 const itemCounts = {};
 
 function updateItemCounts() {
@@ -397,7 +374,7 @@ window.addEventListener("keydown", e => {
 
 window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
 
-// Dokunmatik Buton Bağlantıları (PC ve Mobil Ayrımıyla Sorunsuz Çalışma)
+// Dokunmatik Tuş Eşlemeleri
 function bindTouchButton(id, actionDown, actionUp) {
   const btn = document.getElementById(id);
   if (!btn) return;
@@ -414,7 +391,6 @@ bindTouchButton("btn-jump", () => {
 });
 bindTouchButton("btn-inv", () => toggleInventoryModal());
 
-// Mobilde önündeki bloku kır veya seçili bloğu koy
 bindTouchButton("btn-action", () => {
   let targetX = player.x + player.w / 2 + (player.facing * TILE_SIZE * 1.2);
   let targetY = player.y + player.h / 2;
@@ -459,14 +435,11 @@ function updatePhysics() {
   player.vx = Math.max(-player.maxSpeed, Math.min(player.maxSpeed, player.vx));
   player.vy += 0.42;
 
-  // Yükseklik Sınırı Koruması (Gökyüzünden dışarı çıkmayı engelle)
+  // Yükseklik Sınırı Koruması (Karakterin gökyüzünde dışarı çıkmasını engeller)
   if (player.y < 0) {
     player.y = 0;
     player.vy = 0;
   }
-
-  if (Math.abs(player.vx) > 0.2 && player.grounded) player.animFrame += 0.2;
-  else player.animFrame = 0;
 
   player.x += player.vx;
   if (player.vx > 0 && (isSolidBlock(player.x + player.w, player.y) || isSolidBlock(player.x + player.w, player.y + player.h - 2))) {
@@ -486,14 +459,12 @@ function updatePhysics() {
     player.grounded = true;
   }
 
-  // Koordinatları güncelle
   document.getElementById("coords-display").innerText = `X: ${Math.floor(player.x / TILE_SIZE)} Y: ${Math.floor(player.y / TILE_SIZE)}`;
 }
 
 function renderTile(id, x, y, size, targetCtx) {
   if (!id || id === 0) return;
   const info = ITEM_TYPES[id];
-  
   targetCtx.fillStyle = info.color;
   targetCtx.fillRect(x, y, size, size);
   targetCtx.fillStyle = info.borderHighlight;
@@ -529,7 +500,7 @@ function renderPlayer(screenX, screenY) {
 }
 
 function render() {
-  // Kameranın oyuncuyu tam ortalaması
+  // Kamera oyuncuyu her zaman kusursuz ortalar
   camX += (player.x - camX) * 0.1;
   camY += (player.y - camY) * 0.1;
 
@@ -568,7 +539,7 @@ function render() {
 }
 
 function renderCanvasHotbarUI() {
-  const slotSize = 44;
+  const slotSize = 42;
   const gap = 6;
   const startX = (canvas.width - (5 * slotSize + 4 * gap)) / 2;
   const startY = canvas.height - slotSize - 12;
@@ -592,7 +563,7 @@ function renderCanvasHotbarUI() {
 
     let slot = hotbar[i];
     if (slot.id && slot.id !== 0 && slot.count > 0) {
-      renderTile(slot.id, sx + 6, sy + 6, 32, ctx);
+      renderTile(slot.id, sx + 5, sy + 5, 32, ctx);
       if (!ITEM_TYPES[slot.id].isTool) {
         ctx.fillStyle = "#fff";
         ctx.font = "bold 10px sans-serif";
@@ -679,7 +650,6 @@ function toggleInventoryModal() {
   if (!isVisible) buildInventoryUI();
 }
 
-// PC için fareyle blok kırma
 canvas.onclick = e => {
   if (isMobile) return;
   let viewW = canvas.width / ZOOM;
