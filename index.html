@@ -141,23 +141,21 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// Terraria Tipi Yakın Yakınlaştırma & Boyutlar
 const TILE_SIZE = 32;
-const ZOOM = 1.85; // Ekranı yaklaştırma oranı
+const ZOOM = 1.85; 
 const MAP_W = 200;
 const MAP_H = 120;
 
-// Blok & Eşya Tanımları
 const ITEM_TYPES = {
   0: { name: "Hava", solid: false },
-  1: { name: "Çimen", solid: true, time: 30, color: "#22c55e", darkColor: "#15803d" },
-  2: { name: "Toprak", solid: true, time: 40, color: "#854d0e", darkColor: "#543109" },
-  3: { name: "Taş", solid: true, time: 140, needTool: true, color: "#64748b", darkColor: "#334155" },
-  4: { name: "Ağaç Gövdesi", solid: true, time: 80, color: "#a16207", darkColor: "#713f12" },
-  5: { name: "Yaprak", solid: false, time: 15, color: "#16a34a", darkColor: "#116e33" },
-  6: { name: "Kömür", solid: true, time: 180, needTool: true, color: "#1e293b", darkColor: "#0f172a" },
-  7: { name: "Bakır", solid: true, time: 220, needTool: true, color: "#ea580c", darkColor: "#9a3412" },
-  8: { name: "Ahşap Blok", solid: true, time: 60, color: "#d97706", darkColor: "#92400e" },
+  1: { name: "Çimen", solid: true, time: 30, color: "#5bb32a", darkColor: "#3e801b", borderHighlight: "#8ee356" },
+  2: { name: "Toprak", solid: true, time: 40, color: "#866043", darkColor: "#573d2a", borderHighlight: "#a37857" },
+  3: { name: "Taş", solid: true, time: 140, needTool: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3" },
+  4: { name: "Ağaç Gövdesi", solid: true, time: 80, color: "#674627", darkColor: "#3d2815", borderHighlight: "#8a5e36" },
+  5: { name: "Yaprak", solid: false, time: 15, color: "#2d8a1e", darkColor: "#1a5710", borderHighlight: "#45b033" },
+  6: { name: "Kömür", solid: true, time: 180, needTool: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#171717" },
+  7: { name: "Bakır", solid: true, time: 220, needTool: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#d97706" },
+  8: { name: "Ahşap Blok", solid: true, time: 60, color: "#a16207", darkColor: "#713f12", borderHighlight: "#ca8a04" },
   9: { name: "Çubuk", solid: false, isItem: true, color: "#78350f" },
   10: { name: "Tahta Kazma", solid: false, isTool: true, speed: 4.0, color: "#d97706" },
   11: { name: "Taş Kazma", solid: false, isTool: true, speed: 8.0, color: "#94a3b8" }
@@ -187,7 +185,6 @@ function initWorld() {
     }
   }
 
-  // Ağaçlar
   for (let x = 8; x < MAP_W - 8; x += Math.floor(Math.random() * 5) + 5) {
     if (Math.random() > 0.3) {
       let curSurface = surfaceY + Math.floor(Math.sin(x * 0.08) * 5 + Math.cos(x * 0.04) * 3);
@@ -214,7 +211,6 @@ function updateTime(amount) {
   document.getElementById("time-display").innerText = timeOfDay < 0.5 ? "☀️ Gündüz" : "🌙 Gece";
 }
 
-// OYUNCU FİZİĞİ & POZİSYON
 let player = {
   x: 20 * TILE_SIZE,
   y: (surfaceY - 4) * TILE_SIZE,
@@ -226,12 +222,11 @@ let player = {
   maxSpeed: 2.8,
   friction: 0.8,
   grounded: false,
-  facing: 1, // 1: Sağ, -1: Sol
+  facing: 1,
   selectedSlot: 0,
   animFrame: 0
 };
 
-// Kamera Takip Koordinatları
 let camX = player.x;
 let camY = player.y;
 
@@ -284,12 +279,11 @@ function updatePhysics() {
   }
 
   player.vx = Math.max(-player.maxSpeed, Math.min(player.maxSpeed, player.vx));
-  player.vy += 0.42; // Dengeli yerçekimi
+  player.vy += 0.42;
 
   if (Math.abs(player.vx) > 0.2 && player.grounded) player.animFrame += 0.2;
   else player.animFrame = 0;
 
-  // X Çarpışma
   player.x += player.vx;
   if (player.vx > 0 && (isSolidBlock(player.x + player.w, player.y) || isSolidBlock(player.x + player.w, player.y + player.h - 2))) {
     player.x = Math.floor((player.x + player.w) / TILE_SIZE) * TILE_SIZE - player.w - 0.1;
@@ -300,7 +294,6 @@ function updatePhysics() {
     player.vx = 0;
   }
 
-  // Y Çarpışma
   player.y += player.vy;
   player.grounded = false;
   if (player.vy > 0 && (isSolidBlock(player.x + 2, player.y + player.h) || isSolidBlock(player.x + player.w - 2, player.y + player.h))) {
@@ -309,7 +302,6 @@ function updatePhysics() {
     player.grounded = true;
   }
 
-  // Kırma Mantığı
   if (mining.active) {
     let activeItem = hotbar[player.selectedSlot];
     let speed = ITEM_TYPES[activeItem]?.speed || 1.0;
@@ -343,13 +335,13 @@ function autoAssignToHotbar(itemId) {
   }
 }
 
-// BLOK VE EŞYA ÇİZİMLERİ
+// MINECRAFT TARZI GELİŞMİŞ BLOK ÇİZİMİ
 function renderTile(id, x, y, size, targetCtx = ctx) {
   if (!id || id === 0) return;
 
   const info = ITEM_TYPES[id];
   
-  if (info.isTool) { // Kazma İkonu
+  if (info.isTool) {
     targetCtx.fillStyle = info.color;
     targetCtx.fillRect(x + 4, y + 6, size - 8, 5);
     targetCtx.fillStyle = "#78350f";
@@ -357,32 +349,61 @@ function renderTile(id, x, y, size, targetCtx = ctx) {
     return;
   }
 
-  if (info.isItem) { // Çubuk
+  if (info.isItem) {
     targetCtx.fillStyle = info.color;
     targetCtx.fillRect(x + size / 2 - 2, y + 4, 4, size - 8);
     return;
   }
 
-  // Blok Çizimi & Terraria Tarzı Detaylar
+  // 1. Ana Gövde Renk Dolgusu
   targetCtx.fillStyle = info.color;
   targetCtx.fillRect(x, y, size, size);
 
+  // 2. Minecraft Usulü 3D Kenar Işıkları ve Gölgeleri
+  targetCtx.fillStyle = info.borderHighlight;
+  targetCtx.fillRect(x, y, size, 3); // Üst parlaklık
+  targetCtx.fillRect(x, y, 3, size); // Sol parlaklık
+
   targetCtx.fillStyle = info.darkColor;
-  if (id === 1) { // Çimen Püskülleri
-    targetCtx.fillRect(x, y, size, 6);
-    targetCtx.fillRect(x + 4, y + 6, 4, 4);
-    targetCtx.fillRect(x + 16, y + 6, 5, 3);
-  } else if (id === 2 || id === 3 || id === 6 || id === 7) { // Taş/Maden Doku
-    targetCtx.fillRect(x + 3, y + 3, 5, 5);
-    targetCtx.fillRect(x + size - 9, y + size - 9, 6, 6);
-    targetCtx.fillRect(x + 12, y + 18, 4, 4);
-  } else if (id === 4) { // Ağaç Kabuğu
-    targetCtx.fillRect(x + 3, y, 4, size);
-    targetCtx.fillRect(x + size - 7, y, 3, size);
+  targetCtx.fillRect(x, y + size - 3, size, 3); // Alt gölge
+  targetCtx.fillRect(x + size - 3, y, 3, size); // Sağ gölge
+
+  // 3. Bloğa Özel Doku ve Piksel Detayları
+  if (id === 1) { // Çimen Bloğu
+    targetCtx.fillStyle = "#866043"; // Altı toprak
+    targetCtx.fillRect(x + 3, y + 10, size - 6, size - 13);
+    targetCtx.fillStyle = info.color;
+    // Çimen Püskülleri
+    targetCtx.fillRect(x, y, size, 8);
+    targetCtx.fillRect(x + 3, y + 8, 4, 4);
+    targetCtx.fillRect(x + 11, y + 8, 5, 5);
+    targetCtx.fillRect(x + 20, y + 8, 4, 3);
+    targetCtx.fillRect(x + 26, y + 8, 4, 6);
+  } else if (id === 2 || id === 3) { // Toprak ve Taş Parçacıkları
+    targetCtx.fillStyle = info.darkColor;
+    targetCtx.fillRect(x + 5, y + 6, 6, 5);
+    targetCtx.fillRect(x + 18, y + 14, 7, 6);
+    targetCtx.fillRect(x + 8, y + 22, 5, 4);
+  } else if (id === 6 || id === 7) { // Kömür & Bakır Maden Damarları
+    targetCtx.fillStyle = info.darkColor; // Önce taş dokusu
+    targetCtx.fillRect(x + 5, y + 6, 6, 5);
+    targetCtx.fillRect(x + 18, y + 14, 7, 6);
+    // Parlak Cevher Parçaları
+    targetCtx.fillStyle = info.oreColor;
+    targetCtx.fillRect(x + 7, y + 8, 7, 7);
+    targetCtx.fillRect(x + 17, y + 6, 6, 6);
+    targetCtx.fillRect(x + 12, y + 19, 8, 6);
+  } else if (id === 4) { // Ağaç Lifleri
+    targetCtx.fillStyle = info.darkColor;
+    targetCtx.fillRect(x + 6, y + 3, 4, size - 6);
+    targetCtx.fillRect(x + 18, y + 3, 5, size - 6);
+  } else if (id === 5) { // Yaprak Bloğu Desenleri
+    targetCtx.fillStyle = info.darkColor;
+    targetCtx.fillRect(x + 4, y + 4, 8, 8);
+    targetCtx.fillRect(x + 16, y + 16, 10, 10);
   }
 }
 
-// TERRARIA TİPİ DÜZGÜN (2 GÖZLÜ) KARAKTER ÇİZİMİ
 function renderPlayerTerraria(screenX, screenY) {
   let anim = Math.sin(player.animFrame) * 4;
 
@@ -390,35 +411,28 @@ function renderPlayerTerraria(screenX, screenY) {
   ctx.translate(screenX + player.w / 2, screenY + player.h / 2);
   if (player.facing === -1) ctx.scale(-1, 1);
 
-  // 1. Ayaklar / Çizmeler
   ctx.fillStyle = "#451a03";
   ctx.fillRect(-6, 12 + anim, 5, 8);
   ctx.fillRect(2, 12 - anim, 5, 8);
 
-  // 2. Pantolon / Bacaklar
   ctx.fillStyle = "#1e3a8a";
   ctx.fillRect(-6, 4, 5, 9);
   ctx.fillRect(2, 4, 5, 9);
 
-  // 3. Tişört / Gövde
   ctx.fillStyle = "#dc2626";
   ctx.fillRect(-7, -8, 14, 13);
 
-  // 4. Kollar
   ctx.fillStyle = "#fca5a5";
   ctx.fillRect(-10, -6 - anim * 0.5, 4, 10);
   ctx.fillRect(6, -6 + anim * 0.5, 4, 10);
 
-  // 5. Yüz / Ten
   ctx.fillStyle = "#fca5a5";
   ctx.fillRect(-6, -21, 13, 13);
 
-  // 6. DÜZGÜN 2 GÖZ (Terraria Style)
   ctx.fillStyle = "#0f172a";
-  ctx.fillRect(-2, -16, 2, 4); // Sol Göz
-  ctx.fillRect(3, -16, 2, 4);  // Sağ Göz
+  ctx.fillRect(-2, -16, 2, 4);
+  ctx.fillRect(3, -16, 2, 4);
 
-  // 7. Saç
   ctx.fillStyle = "#78350f";
   ctx.fillRect(-7, -23, 15, 4);
   ctx.fillRect(-7, -20, 3, 5);
@@ -427,7 +441,6 @@ function renderPlayerTerraria(screenX, screenY) {
 }
 
 function render() {
-  // Yumuşak Kamera Takibi (Smooth Follow)
   camX += (player.x - camX) * 0.1;
   camY += (player.y - camY) * 0.1;
 
@@ -443,7 +456,6 @@ function render() {
   drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, drawCamX));
   drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, drawCamY));
 
-  // Gökyüzü Renk Geçişi
   let skyGrad = ctx.createLinearGradient(0, 0, 0, viewH);
   if (timeOfDay < 0.5) {
     skyGrad.addColorStop(0, "#0284c7");
@@ -455,7 +467,6 @@ function render() {
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, viewW, viewH);
 
-  // Dünya Bloklarını Çiz
   let startX = Math.max(0, Math.floor(drawCamX / TILE_SIZE));
   let endX = Math.min(MAP_W, Math.ceil((drawCamX + viewW) / TILE_SIZE));
   let startY = Math.max(0, Math.floor(drawCamY / TILE_SIZE));
@@ -470,7 +481,6 @@ function render() {
     }
   }
 
-  // Kırma Efekti
   if (mining.active) {
     let bx = mining.x * TILE_SIZE - drawCamX;
     let by = mining.y * TILE_SIZE - drawCamY;
@@ -484,10 +494,8 @@ function render() {
     ctx.fillRect(bx, by, TILE_SIZE * ratio, TILE_SIZE);
   }
 
-  // Karakteri Çiz
   renderPlayerTerraria(player.x - drawCamX, player.y - drawCamY);
 
-  // Işık Halesi / Dinamik Gece Karartması
   let lightGrad = ctx.createRadialGradient(
     player.x - drawCamX + player.w / 2, player.y - drawCamY + player.h / 2, 15,
     player.x - drawCamX + player.w / 2, player.y - drawCamY + player.h / 2, 160
@@ -499,11 +507,9 @@ function render() {
 
   ctx.restore();
 
-  // Ekran Arayüzünü ve Düzeltilmiş Alt Slotları Çiz
   renderCanvasHotbarUI();
 }
 
-// KESİN ÇÖZÜM: CANVAS ÜZERİNDE DÜZGÜN ALT SLOTLAR
 function renderCanvasHotbarUI() {
   const slotSize = 48;
   const gap = 8;
@@ -514,26 +520,21 @@ function renderCanvasHotbarUI() {
     let sx = startX + i * (slotSize + gap);
     let sy = startY;
 
-    // Slot Arka Planı
     ctx.fillStyle = i === player.selectedSlot ? "rgba(56, 189, 248, 0.3)" : "rgba(15, 23, 42, 0.85)";
     ctx.fillRect(sx, sy, slotSize, slotSize);
 
-    // Slot Çerçevesi
     ctx.strokeStyle = i === player.selectedSlot ? "#38bdf8" : "rgba(255, 255, 255, 0.2)";
     ctx.lineWidth = i === player.selectedSlot ? 3 : 1.5;
     ctx.strokeRect(sx, sy, slotSize, slotSize);
 
-    // Tuş Numarası (1-5)
     ctx.fillStyle = "#94a3b8";
     ctx.font = "bold 10px sans-serif";
     ctx.fillText(i + 1, sx + 4, sy + 12);
 
-    // Eşya Görseli
     let itemKey = hotbar[i];
     if (itemKey && itemKey !== 0) {
       renderTile(itemKey, sx + 8, sy + 8, 32, ctx);
 
-      // Sayı / Adet
       if (!ITEM_TYPES[itemKey].isTool) {
         let count = inventoryStorage[itemKey] || 0;
         ctx.fillStyle = "#fff";
@@ -546,7 +547,6 @@ function renderCanvasHotbarUI() {
   }
 }
 
-// CRAFTING & ENVANTER (E Tuşu)
 const craftingRecipes = [
   { item: 8, count: 4, cost: { 4: 1 }, name: "Ahşap Blok (4x)" },
   { item: 9, count: 4, cost: { 8: 2 }, name: "Ahşap Çubuk (4x)" },
@@ -592,7 +592,6 @@ function toggleInventoryModal() {
   }
 }
 
-// ETKİLEŞİM & FARE KONTROLLERİ
 canvas.onmousedown = e => {
   let viewW = canvas.width / ZOOM;
   let viewH = canvas.height / ZOOM;
@@ -608,12 +607,12 @@ canvas.onmousedown = e => {
   let dist = Math.hypot(tx * TILE_SIZE - player.x, ty * TILE_SIZE - player.y);
   if (dist > TILE_SIZE * 8) return;
 
-  if (e.button === 0 && world[ty]?.[tx] !== 0) { // Sol Tık
+  if (e.button === 0 && world[ty]?.[tx] !== 0) {
     mining.active = true;
     mining.x = tx;
     mining.y = ty;
     mining.progress = 0;
-  } else if (e.button === 2) { // Sağ Tık
+  } else if (e.button === 2) {
     let activeItem = hotbar[player.selectedSlot];
     if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && (inventoryStorage[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
       world[ty][tx] = activeItem;
