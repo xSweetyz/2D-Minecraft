@@ -284,23 +284,69 @@ const storage = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 const itemCounts = {};
 
 function addPlayerItem(itemId, count = 1) {
-  itemCounts[itemId] = (itemCounts[itemId] || 0) + count;
-  
-  if (!hotbar.includes(itemId)) {
+  // Her eşya ayrı slotlara dağılsın, üst üste birikmesin (Stack yok)
+  for (let c = 0; c < count; c++) {
+    let placed = false;
+    
+    // Önce hotbar'da boş slot ara
     for (let i = 0; i < 5; i++) {
       if (hotbar[i] === 0) {
         hotbar[i] = itemId;
-        return;
+        placed = true;
+        break;
+      }
+    }
+    
+    // Hotbar doluysa depoda boş slot ara
+    if (!placed) {
+      for (let i = 0; i < storage.length; i++) {
+        if (storage[i] === 0) {
+          storage[i] = itemId;
+          placed = true;
+          break;
+        }
       }
     }
   }
   
-  for (let i = 0; i < storage.length; i++) {
-    if (storage[i] === 0) {
-      storage[i] = itemId;
-      return;
+  updateItemCounts();
+}
+
+// Slotlardaki her bir eşyayı sayarak count havuzunu güncelle ve 0 olanları temizle
+function updateItemCounts() {
+  for (let key in itemCounts) delete itemCounts[key];
+  
+  const processSlot = (id) => {
+    if (id && id !== 0) {
+      itemCounts[id] = (itemCounts[id] || 0) + 1;
+    }
+  };
+
+  hotbar.forEach(processSlot);
+  storage.forEach(processSlot);
+}
+
+// Harcanan malzemeleri slotlardan eksilt ve 0 olanları otomatik sil
+function consumePlayerItem(itemId, amount = 1) {
+  let remaining = amount;
+
+  // Önce depodan eksilt
+  for (let i = storage.length - 1; i >= 0; i--) {
+    if (remaining > 0 && storage[i] === itemId) {
+      storage[i] = 0;
+      remaining--;
     }
   }
+
+  // Sonra hotbar'dan eksilt
+  for (let i = hotbar.length - 1; i >= 0; i--) {
+    if (remaining > 0 && hotbar[i] === itemId) {
+      hotbar[i] = 0;
+      remaining--;
+    }
+  }
+
+  updateItemCounts();
 }
 
 const keys = {};
@@ -561,6 +607,8 @@ function renderCanvasHotbarUI() {
   const startX = (canvas.width - (5 * slotSize + 4 * gap)) / 2;
   const startY = canvas.height - slotSize - 16;
 
+  updateItemCounts();
+
   for (let i = 0; i < 5; i++) {
     let sx = startX + i * (slotSize + gap);
     let sy = startY;
@@ -584,7 +632,7 @@ function renderCanvasHotbarUI() {
         ctx.fillStyle = "#fff";
         ctx.font = "bold 11px sans-serif";
         ctx.textAlign = "right";
-        ctx.fillText(count, sx + slotSize - 4, sx ? sy + slotSize - 4 : 0); // syntax safety
+        ctx.fillText(count, sx + slotSize - 4, sy + slotSize - 4);
         ctx.textAlign = "left";
       }
     }
@@ -594,6 +642,8 @@ function renderCanvasHotbarUI() {
 let draggedItemInfo = null;
 
 function buildInventoryUI() {
+  updateItemCounts();
+
   const hbGrid = document.getElementById("modal-hotbar-grid");
   hbGrid.innerHTML = "";
   for (let i = 0; i < 5; i++) {
@@ -652,7 +702,7 @@ function buildInventoryUI() {
     card.onclick = () => {
       if (canCraft) {
         Object.keys(r.cost).forEach(k => {
-          itemCounts[k] -= r.cost[k];
+          consumePlayerItem(parseInt(k), r.cost[k]);
         });
         addPlayerItem(r.item, r.count);
         buildInventoryUI();
@@ -662,7 +712,6 @@ function buildInventoryUI() {
   });
 }
 
-// İMLEÇ GİDİNCE İSİM GÖSTERME (TOOLTIP)
 const tooltip = document.getElementById("tooltip");
 function setupTooltipEvents(elem) {
   elem.onmousemove = (e) => {
@@ -748,9 +797,9 @@ canvas.onmousedown = e => {
     mining.progress = 0;
   } else if (e.button === 2) {
     let activeItem = hotbar[player.selectedSlot];
-    if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && (itemCounts[activeItem] || 0) > 0 && world[ty]?.[tx] === 0) {
+    if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && world[ty]?.[tx] === 0) {
       world[ty][tx] = activeItem;
-      itemCounts[activeItem]--;
+      consumePlayerItem(activeItem, 1);
     }
   }
 };
