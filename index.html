@@ -8,132 +8,108 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #65b6e8; font-family: sans-serif; }
     #game { display: block; width: 100vw; height: 100vh; }
-    #ui { position: absolute; top: 10px; left: 10px; color: #fff; text-shadow: 2px 2px 2px #000; font-weight: bold; pointer-events: none; }
-    #hotbar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; background: rgba(0,0,0,0.5); padding: 6px; border-radius: 6px; }
-    .slot { width: 40px; height: 40px; border: 2px solid #555; display: flex; align-items: center; justify-content: center; position: relative; background: rgba(255,255,255,0.1); cursor: pointer; }
-    .slot.sel { border-color: #fff; background: rgba(255,255,255,0.3); }
-    .slot i { width: 20px; height: 20px; }
-    .slot b { position: absolute; bottom: 2px; right: 2px; font-size: 10px; color: #fff; }
+    #ui { position: absolute; top: 10px; left: 10px; color: #fff; text-shadow: 2px 2px 2px #000; font-size: 16px; font-weight: bold; pointer-events: none; }
   </style>
 </head>
 <body>
 
   <canvas id="game"></canvas>
   <div id="ui">❤️ 20/20 | 🍗 20/20</div>
-  <div id="hotbar"></div>
 
 <script>
 const cv = document.getElementById("game"), ctx = cv.getContext("2d");
 function resize(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
 window.addEventListener("resize", resize); resize();
 
-const T = 32, W = 100, H = 60;
-const B = {
-  air:{s:0,c:"transparent"}, grass:{s:1,c:"#62a63d"}, dirt:{s:1,c:"#8a5a31"}, stone:{s:1,c:"#777"}, wood:{s:1,c:"#86572b"}
-};
+const BLOCK_SIZE = 40;
+const MAP_W = 100, MAP_H = 50;
 
-let world = Array.from({length: H}, () => Array(W).fill("air"));
-
-// Garanti Zemin Oluşturma (Y=20'den itibaren toprak)
-for(let x = 0; x < W; x++) {
-  for(let y = 20; y < H; y++) {
-    if(y === 20) world[y][x] = "grass";
-    else if(y < 25) world[y][x] = "dirt";
-    else world[y][x] = "stone";
+// Dünya Oluşturma
+let world = [];
+for(let y = 0; y < MAP_H; y++) {
+  world[y] = [];
+  for(let x = 0; x < MAP_W; x++) {
+    if(y < 15) world[y][x] = 0;       // Gökyüzü (Hava)
+    else if(y === 15) world[y][x] = 1; // Çimen (Zemin)
+    else if(y < 20) world[y][x] = 2;  // Toprak
+    else world[y][x] = 3;             // Taş
   }
 }
 
-// Oyuncuyu tam zemine oturtuyoruz (Y=18.2)
-const p = { x: 10, y: 18.2, vx: 0, vy: 0, w: 0.8, h: 1.8, g: 0, sel: 0 };
-const inv = { grass: 20, dirt: 10, stone: 10, wood: 5 };
-const slots = ["grass", "dirt", "stone", "wood"];
-const keys = {};
+// Oyuncu (Zeminin tam üzerine koyuldu: X=10, Y=13)
+let player = { x: 10 * BLOCK_SIZE, y: 13 * BLOCK_SIZE, w: 28, h: 56, vx: 0, vy: 0, grounded: false };
+let keys = {};
 
-addEventListener("keydown", e => {
-  keys[e.key.toLowerCase()] = 1;
-  if("1234".includes(e.key)) p.sel = +e.key - 1;
-});
-addEventListener("keyup", e => keys[e.key.toLowerCase()] = 0);
+addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-function solid(x, y) {
-  let bx = Math.floor(x), by = Math.floor(y);
-  if(bx < 0 || by < 0 || bx >= W || by >= H) return 1;
-  return B[world[by][bx]].s;
-}
+function update() {
+  // Sol-Sağ Hareket
+  if(keys["a"] || keys["arrowleft"]) player.vx = -4;
+  else if(keys["d"] || keys["arrowright"]) player.vx = 4;
+  else player.vx = 0;
 
-function physics() {
-  let l = keys.a || keys.arrowleft, r = keys.d || keys.arrowright, j = keys.w || keys.arrowup || keys[" "];
-  p.vx += (r - l) * 0.04; p.vx *= 0.75;
-  p.vy += 0.015;
-  if(j && p.g) { p.vy = -0.28; p.g = 0; }
-  
-  p.x += p.vx;
-  p.y += p.vy; p.g = 0;
+  // Zıplama
+  if((keys["w"] || keys[" "] || keys["arrowup"]) && player.grounded) {
+    player.vy = -10;
+    player.grounded = false;
+  }
 
-  if(p.vy > 0 && (solid(p.x, p.y + p.h) || solid(p.x + p.w, p.y + p.h))) {
-    p.y = Math.floor(p.y + p.h) - p.h;
-    p.vy = 0; p.g = 1;
+  // Yerçekimi
+  player.vy += 0.5;
+
+  // Pozisyon Güncelleme
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // Basit Zemin Çarpışması (Y=15 blok seviyesi)
+  let groundY = 15 * BLOCK_SIZE - player.h;
+  if(player.y >= groundY) {
+    player.y = groundY;
+    player.vy = 0;
+    player.grounded = true;
   }
 }
 
-function render() {
-  // Kamera Oyuncuyu Takip Eder
-  let cx = p.x * T - cv.width / 2;
-  let cy = p.y * T - cv.height / 2;
+function draw() {
+  // Kamera Merkezleme (Oyuncuyu ekranın ortasında tutar)
+  let camX = player.x - cv.width / 2;
+  let camY = player.y - cv.height / 2;
 
+  // Gökyüzü Arka Planı
   ctx.fillStyle = "#65b6e8";
   ctx.fillRect(0, 0, cv.width, cv.height);
 
   // Blokları Çiz
-  for(let y = 0; y < H; y++) {
-    for(let x = 0; x < W; x++) {
-      let t = world[y][x];
-      if(t !== "air") {
-        ctx.fillStyle = B[t].c;
-        ctx.fillRect(x * T - cx, y * T - cy, T, T);
+  for(let y = 0; y < MAP_H; y++) {
+    for(let x = 0; x < MAP_W; x++) {
+      let tile = world[y][x];
+      if(tile !== 0) {
+        if(tile === 1) ctx.fillStyle = "#55a832"; // Çimen
+        else if(tile === 2) ctx.fillStyle = "#795548"; // Toprak
+        else if(tile === 3) ctx.fillStyle = "#607d8b"; // Taş
+
+        let screenX = x * BLOCK_SIZE - camX;
+        let screenY = y * BLOCK_SIZE - camY;
+
+        ctx.fillRect(screenX, screenY, BLOCK_SIZE, BLOCK_SIZE);
+        ctx.strokeStyle = "rgba(0,0,0,0.1)";
+        ctx.strokeRect(screenX, screenY, BLOCK_SIZE, BLOCK_SIZE);
       }
     }
   }
 
   // Oyuncuyu Çiz (Kırmızı Karakter)
   ctx.fillStyle = "#e74c3c";
-  ctx.fillRect(p.x * T - cx, p.y * T - cy, p.w * T, p.h * T);
-
-  // Envanter Barı
-  let h = document.getElementById("hotbar"); h.innerHTML = "";
-  slots.forEach((it, i) => {
-    let d = document.createElement("div");
-    d.className = "slot" + (i === p.sel ? " sel" : "");
-    d.innerHTML = `<i style="background:${B[it].c}"></i><b>${inv[it]||0}</b>`;
-    h.appendChild(d);
-  });
+  ctx.fillRect(player.x - camX, player.y - camY, player.w, player.h);
 }
 
-cv.onmousedown = e => {
-  let cx = p.x * T - cv.width / 2;
-  let cy = p.y * T - cv.height / 2;
-  let tx = Math.floor((e.clientX + cx) / T);
-  let ty = Math.floor((e.clientY + cy) / T);
-
-  if(e.button === 0 && world[ty]?.[tx] !== "air") {
-    let t = world[ty][tx];
-    world[ty][tx] = "air";
-    inv[t] = (inv[t] || 0) + 1;
-  } else if(e.button === 2) {
-    let it = slots[p.sel];
-    if((inv[it] || 0) > 0 && world[ty]?.[tx] === "air") {
-      world[ty][tx] = it;
-      inv[it]--;
-    }
-  }
-};
-cv.oncontextmenu = e => e.preventDefault();
-
-(function loop() {
-  physics();
-  render();
+function loop() {
+  update();
+  draw();
   requestAnimationFrame(loop);
-})();
+}
+loop();
 </script>
 </body>
 </html>
