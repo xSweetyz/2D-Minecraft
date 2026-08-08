@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Terraria 2D Survival Edition</title>
   <style>
     * {
@@ -55,6 +55,43 @@
       text-shadow: 1px 1px 2px #000;
     }
 
+    /* Mobil Kontrol Butonları */
+    #mobile-controls {
+      display: none;
+      position: absolute;
+      bottom: 80px;
+      left: 0;
+      width: 100%;
+      padding: 0 20px;
+      justify-content: space-between;
+      z-index: 15;
+      pointer-events: none;
+    }
+    .touch-group {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+    .touch-btn {
+      width: 60px;
+      height: 60px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 2px solid rgba(56, 189, 248, 0.5);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      outline: none;
+    }
+    .touch-btn:active {
+      background: rgba(56, 189, 248, 0.4);
+      transform: scale(0.95);
+    }
+
     /* Envanter & Crafting Modalı */
     #inventory-modal {
       display: none;
@@ -67,7 +104,8 @@
       border: 2px solid #38bdf8;
       border-radius: 12px;
       padding: 20px;
-      width: 440px;
+      width: 90%;
+      max-width: 440px;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
       z-index: 20;
       color: #fff;
@@ -116,7 +154,6 @@
       pointer-events: none;
     }
 
-    /* İsim İpucu (Tooltip) */
     #tooltip {
       display: none;
       position: fixed;
@@ -164,8 +201,20 @@
       <span style="opacity: 0.3;">|</span>
       <span id="time-display">☀️ Gündüz</span>
     </div>
-    <div class="controls-hint">
-      [A/D] Yürü | [W/Space] Tek Blok Zıpla | [E] Envanter & Sürükle | [1-5] Slot Seç | [Sol Tık] Kır | [Sağ Tık] Koy
+    <div class="controls-hint" id="desktop-hint">
+      [A/D] Yürü | [W/Space] Zıpla | [E] Envanter | [1-5] Slot | [Sol Tık] Kır | [Sağ Tık] Koy
+    </div>
+  </div>
+
+  <div id="mobile-controls">
+    <div class="touch-group">
+      <button class="touch-btn" id="btn-left">◀</button>
+      <button class="touch-btn" id="btn-right">▶</button>
+    </div>
+    <div class="touch-group">
+      <button class="touch-btn" id="btn-jump">⬆</button>
+      <button class="touch-btn" id="btn-inv">📦</button>
+      <button class="touch-btn" id="btn-action">⛏️</button>
     </div>
   </div>
 
@@ -186,6 +235,10 @@ const ctx = canvas.getContext("2d");
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    document.getElementById("mobile-controls").style.display = "flex";
+    document.getElementById("desktop-hint").style.display = "none";
+  }
 }
 window.addEventListener("resize", resize);
 resize();
@@ -284,11 +337,8 @@ const storage = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 const itemCounts = {};
 
 function addPlayerItem(itemId, count = 1) {
-  // Her eşya ayrı slotlara dağılsın, üst üste birikmesin (Stack yok)
   for (let c = 0; c < count; c++) {
     let placed = false;
-    
-    // Önce hotbar'da boş slot ara
     for (let i = 0; i < 5; i++) {
       if (hotbar[i] === 0) {
         hotbar[i] = itemId;
@@ -296,8 +346,6 @@ function addPlayerItem(itemId, count = 1) {
         break;
       }
     }
-    
-    // Hotbar doluysa depoda boş slot ara
     if (!placed) {
       for (let i = 0; i < storage.length; i++) {
         if (storage[i] === 0) {
@@ -308,44 +356,34 @@ function addPlayerItem(itemId, count = 1) {
       }
     }
   }
-  
   updateItemCounts();
 }
 
-// Slotlardaki her bir eşyayı sayarak count havuzunu güncelle ve 0 olanları temizle
 function updateItemCounts() {
   for (let key in itemCounts) delete itemCounts[key];
-  
   const processSlot = (id) => {
     if (id && id !== 0) {
       itemCounts[id] = (itemCounts[id] || 0) + 1;
     }
   };
-
   hotbar.forEach(processSlot);
   storage.forEach(processSlot);
 }
 
-// Harcanan malzemeleri slotlardan eksilt ve 0 olanları otomatik sil
 function consumePlayerItem(itemId, amount = 1) {
   let remaining = amount;
-
-  // Önce depodan eksilt
   for (let i = storage.length - 1; i >= 0; i--) {
     if (remaining > 0 && storage[i] === itemId) {
       storage[i] = 0;
       remaining--;
     }
   }
-
-  // Sonra hotbar'dan eksilt
   for (let i = hotbar.length - 1; i >= 0; i--) {
     if (remaining > 0 && hotbar[i] === itemId) {
       hotbar[i] = 0;
       remaining--;
     }
   }
-
   updateItemCounts();
 }
 
@@ -355,23 +393,47 @@ let mining = { active: false, x: -1, y: -1, progress: 0 };
 window.addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
-
-  if ("12345".includes(e.key)) {
-    player.selectedSlot = parseInt(e.key) - 1;
-  }
-
+  if ("12345".includes(e.key)) player.selectedSlot = parseInt(e.key) - 1;
   if ((k === "w" || k === " ") && player.grounded) {
     player.vy = -6.8; 
     player.grounded = false;
     timeOfDay = 0.0;
     updateTime(0);
   }
-
   if (k === "e") toggleInventoryModal();
 });
 
 window.addEventListener("keyup", e => {
   keys[e.key.toLowerCase()] = false;
+});
+
+// Dokunmatik Buton Olayları
+function bindTouchButton(id, actionDown, actionUp) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.addEventListener("touchstart", (e) => { e.preventDefault(); actionDown(); });
+  btn.addEventListener("touchend", (e) => { e.preventDefault(); if (actionUp) actionUp(); });
+  btn.addEventListener("mousedown", (e) => { e.preventDefault(); actionDown(); });
+  btn.addEventListener("mouseup", (e) => { e.preventDefault(); if (actionUp) actionUp(); });
+}
+
+bindTouchButton("btn-left", () => keys["a"] = true, () => keys["a"] = false);
+bindTouchButton("btn-right", () => keys["d"] = true, () => keys["d"] = false);
+bindTouchButton("btn-jump", () => {
+  if (player.grounded) {
+    player.vy = -6.8;
+    player.grounded = false;
+  }
+});
+bindTouchButton("btn-inv", () => toggleInventoryModal());
+bindTouchButton("btn-action", () => {
+  // Mobilde ortadaki bloğu kırma/koyma işlemi
+  let tx = Math.floor((player.x + player.w/2) / TILE_SIZE);
+  let ty = Math.floor((player.y + player.h/2) / TILE_SIZE);
+  if (world[ty]?.[tx] !== 0) {
+    world[ty][tx] = 0;
+    addPlayerItem(world[ty][tx], 1);
+  }
 });
 
 function isSolidBlock(px, py) {
@@ -474,18 +536,14 @@ function renderTile(id, x, y, size, targetCtx) {
     targetCtx.fillRect(x + 3, y + 10, size - 6, size - 13);
     targetCtx.fillStyle = info.color;
     targetCtx.fillRect(x, y, size, 8);
-    targetCtx.fillRect(x + 3, y + 8, 4, 4);
-    targetCtx.fillRect(x + 11, y + 8, 5, 5);
   } else if (id === 2 || id === 3) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 5, y + 6, 6, 5);
-    targetCtx.fillRect(x + 18, y + 14, 7, 6);
   } else if (id === 6 || id === 7) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 5, y + 6, 6, 5);
     targetCtx.fillStyle = info.oreColor;
     targetCtx.fillRect(x + 7, y + 8, 7, 7);
-    targetCtx.fillRect(x + 17, y + 6, 6, 6);
   } else if (id === 4) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 6, y + 3, 4, size - 6);
@@ -497,7 +555,6 @@ function renderTile(id, x, y, size, targetCtx) {
 
 function renderPlayerTerraria(screenX, screenY) {
   let anim = Math.sin(player.animFrame) * 4;
-
   ctx.save();
   ctx.translate(screenX + player.w / 2, screenY + player.h / 2);
   if (player.facing === -1) ctx.scale(-1, 1);
@@ -526,8 +583,6 @@ function renderPlayerTerraria(screenX, screenY) {
 
   ctx.fillStyle = "#78350f";
   ctx.fillRect(-7, -23, 15, 4);
-  ctx.fillRect(-7, -20, 3, 5);
-
   ctx.restore();
 }
 
@@ -540,12 +595,8 @@ function render() {
 
   let viewW = canvas.width / ZOOM;
   let viewH = canvas.height / ZOOM;
-
-  let drawCamX = camX - viewW / 2;
-  let drawCamY = camY - viewH / 2;
-
-  drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, drawCamX));
-  drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, drawCamY));
+  let drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, camX - viewW / 2));
+  let drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, camY - viewH / 2));
 
   let skyGrad = ctx.createLinearGradient(0, 0, 0, viewH);
   if (timeOfDay < 0.5) {
@@ -586,16 +637,6 @@ function render() {
   }
 
   renderPlayerTerraria(player.x - drawCamX, player.y - drawCamY);
-
-  let lightGrad = ctx.createRadialGradient(
-    player.x - drawCamX + player.w / 2, player.y - drawCamY + player.h / 2, 15,
-    player.x - drawCamX + player.w / 2, player.y - drawCamY + player.h / 2, 160
-  );
-  lightGrad.addColorStop(0, "rgba(255,255,255,0)");
-  lightGrad.addColorStop(1, timeOfDay >= 0.5 ? "rgba(2, 6, 23, 0.85)" : "rgba(0,0,0,0)");
-  ctx.fillStyle = lightGrad;
-  ctx.fillRect(0, 0, viewW, viewH);
-
   ctx.restore();
 
   renderCanvasHotbarUI();
@@ -649,7 +690,6 @@ function buildInventoryUI() {
   for (let i = 0; i < 5; i++) {
     let slotDiv = document.createElement("div");
     slotDiv.className = "inv-slot";
-
     let itemKey = hotbar[i];
     if (itemKey && itemKey !== 0) {
       let c = document.createElement("canvas");
@@ -673,7 +713,6 @@ function buildInventoryUI() {
   for (let i = 0; i < storage.length; i++) {
     let slotDiv = document.createElement("div");
     slotDiv.className = "inv-slot";
-
     let itemKey = storage[i];
     if (itemKey && itemKey !== 0) {
       let c = document.createElement("canvas");
@@ -701,9 +740,7 @@ function buildInventoryUI() {
     card.innerHTML = `<span>${r.name}</span><span class="craft-btn">${canCraft ? "ÜRET" : "Eksik"}</span>`;
     card.onclick = () => {
       if (canCraft) {
-        Object.keys(r.cost).forEach(k => {
-          consumePlayerItem(parseInt(k), r.cost[k]);
-        });
+        Object.keys(r.cost).forEach(k => consumePlayerItem(parseInt(k), r.cost[k]));
         addPlayerItem(r.item, r.count);
         buildInventoryUI();
       }
@@ -723,9 +760,7 @@ function setupTooltipEvents(elem) {
       tooltip.style.top = (e.clientY + 12) + "px";
     }
   };
-  elem.onmouseleave = () => {
-    tooltip.style.display = "none";
-  };
+  elem.onmouseleave = () => tooltip.style.display = "none";
 }
 
 function setupDragAndDropEvents(elem, type, index) {
@@ -738,10 +773,8 @@ function setupDragAndDropEvents(elem, type, index) {
   elem.ondrop = (e) => {
     e.preventDefault();
     if (!draggedItemInfo) return;
-
     let srcType = draggedItemInfo.type;
     let srcIdx = draggedItemInfo.index;
-
     let sourceVal = srcType === 'hotbar' ? hotbar[srcIdx] : storage[srcIdx];
     let targetVal = type === 'hotbar' ? hotbar[index] : storage[index];
 
@@ -767,12 +800,8 @@ function toggleInventoryModal() {
   const modal = document.getElementById("inventory-modal");
   const isVisible = modal.style.display === "block";
   modal.style.display = isVisible ? "none" : "block";
-
-  if (!isVisible) {
-    buildInventoryUI();
-  } else {
-    tooltip.style.display = "none";
-  }
+  if (!isVisible) buildInventoryUI();
+  else tooltip.style.display = "none";
 }
 
 canvas.onmousedown = e => {
