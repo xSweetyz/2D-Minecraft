@@ -103,7 +103,7 @@
       border-radius: 12px;
       padding: 15px;
       width: 95%;
-      max-width: 480px;
+      max-width: 520px;
       max-height: 90vh;
       overflow-y: auto;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
@@ -184,7 +184,34 @@
       white-space: nowrap;
     }
 
-    /* Crafting Table Modalı */
+    /* Envanter İçi Crafting Paneli */
+    .quick-craft-panel {
+      margin-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 8px;
+    }
+    .recipe-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+    .recipe-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(30, 41, 59, 0.8);
+      padding: 5px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .recipe-card.disabled { opacity: 0.4; cursor: not-allowed; }
+    .craft-btn { background: #38bdf8; color: #0f172a; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+
+    /* Çalışma Masası Modalı */
     #crafting-modal {
       display: none;
       position: absolute;
@@ -212,26 +239,6 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 5px;
     }
-    .recipe-list {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      max-height: 250px;
-      overflow-y: auto;
-    }
-    .recipe-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(30, 41, 59, 0.8);
-      padding: 6px 10px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 11px;
-    }
-    .recipe-card.disabled { opacity: 0.4; cursor: not-allowed; }
-    .craft-btn { background: #d97706; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -263,7 +270,7 @@
   </div>
 
   <div id="inventory-modal">
-    <h2>ENVANTER</h2>
+    <h2>ENVANTER VE ÜRETİM</h2>
     <div class="inventory-container">
       <div class="main-inv-area">
         <div class="section-title">Hotbar (Hızlı Erişim - 5 Slot)</div>
@@ -279,10 +286,14 @@
         <div class="inv-slot" id="armor-slot-boots" title="Bot"></div>
       </div>
     </div>
+    <div class="quick-craft-panel">
+      <div class="section-title">Temel Üretim (Envanterden Yapılabilir)</div>
+      <div class="recipe-list" id="inventory-recipe-list"></div>
+    </div>
   </div>
 
   <div id="crafting-modal">
-    <h2>ÇALIŞMA MASASI (CRAFTING TABLE)</h2>
+    <h2>ÇALIŞMA MASASI (GELİŞMİŞ ÜRETİM)</h2>
     <div class="section-title" style="margin-bottom: 6px;">Mevcut Üretim Reçeteleri</div>
     <div class="recipe-list" id="crafting-recipe-list"></div>
     <button style="margin-top: 10px; width: 100%; padding: 6px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-weight: bold; cursor: pointer;" onclick="toggleCraftingModal()">Kapat</button>
@@ -314,7 +325,7 @@ const ITEM_TYPES = {
   2: { name: "Toprak", solid: true, time: 40, color: "#866043", darkColor: "#573d2a", borderHighlight: "#a37857" },
   3: { name: "Taş", solid: true, time: 140, needTool: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3" },
   4: { name: "Ağaç Gövdesi", solid: true, time: 80, color: "#674627", darkColor: "#3d2815", borderHighlight: "#8a5e36" },
-  5: { name: "Yaprak", solid: false, time: 15, color: "#2d8a1e", darkColor: "#1a5710", borderHighlight: "#45b033" },
+  5: { name: "Yaprak", solid: true, walkThrough: true, time: 15, color: "#2d8a1e", darkColor: "#1a5710", borderHighlight: "#45b033" }, // Üzerinde yürünebilir yaprak
   6: { name: "Kömür", solid: true, time: 180, needTool: true, isOre: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#171717" },
   7: { name: "Bakır", solid: true, time: 220, needTool: true, isOre: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#f97316" },
   21: { name: "Demir", solid: true, time: 260, needTool: true, isOre: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#cbd5e1" },
@@ -322,7 +333,7 @@ const ITEM_TYPES = {
   9: { name: "Çubuk", solid: false, isItem: true, color: "#78350f" },
   22: { name: "Çalışma Masası", solid: true, time: 70, isCraftingTable: true, color: "#b45309", darkColor: "#78350f", borderHighlight: "#d97706" },
 
-  // Aletler ve Gelişmiş Grafikler
+  // Aletler
   10: { name: "Tahta Kazma", solid: false, isTool: true, toolType: 'pickaxe', tier: 1, speed: 4.0, color: "#d97706" },
   23: { name: "Tahta Balta", solid: false, isTool: true, toolType: 'axe', tier: 1, speed: 4.0, color: "#d97706" },
   11: { name: "Taş Kazma", solid: false, isTool: true, toolType: 'pickaxe', tier: 2, speed: 8.0, color: "#94a3b8" },
@@ -332,12 +343,7 @@ const ITEM_TYPES = {
   26: { name: "Demir Kazma", solid: false, isTool: true, toolType: 'pickaxe', tier: 4, speed: 20.0, color: "#cbd5e1" },
   27: { name: "Demir Balta", solid: false, isTool: true, toolType: 'axe', tier: 4, speed: 20.0, color: "#cbd5e1" },
 
-  // Zırhlar
-  13: { name: "Taş Kask", solid: false, isArmor: true, armorType: 'head', color: "#64748b" },
-  14: { name: "Taş Göğüslük", solid: false, isArmor: true, armorType: 'chest', color: "#64748b" },
-  15: { name: "Taş Pantolon", solid: false, isArmor: true, armorType: 'legs', color: "#475569" },
-  16: { name: "Taş Bot", solid: false, isArmor: true, armorType: 'boots', color: "#334155" },
-
+  // Zırhlar (Taş zırhlar kaldırıldı, Bakır ve Demir zırhlar kaldı)
   17: { name: "Bakır Kask", solid: false, isArmor: true, armorType: 'head', color: "#ea580c" },
   18: { name: "Bakır Göğüslük", solid: false, isArmor: true, armorType: 'chest', color: "#ea580c" },
   19: { name: "Bakır Pantolon", solid: false, isArmor: true, armorType: 'legs', color: "#c2410c" },
@@ -507,6 +513,36 @@ function consumePlayerItem(itemId, amount = 1) {
   updateItemCounts();
 }
 
+// Ağaç gövdesi kırıldığında 1 tane bile odun kalmazsa yaprakların düşmesini tetikleyen fonksiyon
+function checkTreeLeavesDecay(tx, ty) {
+  let startX = tx - 3;
+  let endX = tx + 3;
+  let startY = ty - 5;
+  let endY = ty + 1;
+
+  for (let y = startY; y <= endY; y++) {
+    for (let x = startX; x <= endX; x++) {
+      if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
+        if (world[y][x] === 4) {
+          return; // Hâlâ odun var, düşmesin
+        }
+      }
+    }
+  }
+
+  // Odun kalmadıysa yaprakları düşürmeye başla (havaya dönüştür veya envantere ekle)
+  for (let y = startY; y <= endY; y++) {
+    for (let x = startX; x <= endX; x++) {
+      if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
+        if (world[y][x] === 5) {
+          world[y][x] = 0;
+          if (Math.random() < 0.2) addPlayerItem(5, 1); // Yaprak düşme şansı
+        }
+      }
+    }
+  }
+}
+
 const keys = {};
 let mining = { active: false, x: -1, y: -1, progress: 0 };
 
@@ -558,6 +594,7 @@ bindTouchButton("btn-action", () => {
     let mined = world[ty][tx];
     world[ty][tx] = 0;
     addPlayerItem(mined, 1);
+    if (mined === 4) checkTreeLeavesDecay(tx, ty);
   } else {
     let activeSlot = hotbar[player.selectedSlot];
     let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
@@ -572,7 +609,9 @@ function isSolidBlock(px, py) {
   let tx = Math.floor(px / TILE_SIZE);
   let ty = Math.floor(py / TILE_SIZE);
   if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return true;
-  return ITEM_TYPES[world[ty][tx]].solid;
+  let blockId = world[ty][tx];
+  if (blockId === 5) return false; // Yapraklar üzerinde yürünebilir (çarpışma yok)
+  return ITEM_TYPES[blockId].solid;
 }
 
 function updatePhysics() {
@@ -624,8 +663,10 @@ function updatePhysics() {
       } else {
         mining.progress += speed;
         if (mining.progress >= ITEM_TYPES[target].time) {
-          addPlayerItem(target, 1);
+          let mined = target;
           world[mining.y][mining.x] = 0;
+          addPlayerItem(mined, 1);
+          if (mined === 4) checkTreeLeavesDecay(mining.x, mining.y);
           mining.active = false;
         }
       }
@@ -635,24 +676,20 @@ function updatePhysics() {
   }
 }
 
-// Detaylı ve Geliştirilmiş Alet Grafikleri Çizicisi
 function renderToolGraphic(info, x, y, size, targetCtx) {
   targetCtx.save();
   targetCtx.translate(x + size / 2, y + size / 2);
-  targetCtx.rotate(Math.PI / 4); // Şık duruş açısı
+  targetCtx.rotate(Math.PI / 4);
 
-  // Sap (Sopa)
   targetCtx.fillStyle = "#78350f";
   targetCtx.fillRect(-2, -size / 3, 4, size / 1.5);
 
   if (info.toolType === 'pickaxe') {
-    // Kazma Başı Ucu
     targetCtx.fillStyle = info.color;
     targetCtx.fillRect(-size / 2.5, -size / 2.5, size / 1.25, 6);
     targetCtx.fillStyle = "#1e293b";
     targetCtx.fillRect(-2, -size / 2.5, 4, 6);
   } else if (info.toolType === 'axe') {
-    // Balta Ağzı Ucu
     targetCtx.fillStyle = info.color;
     targetCtx.fillRect(0, -size / 2.5, size / 2.2, size / 2.2);
     targetCtx.fillStyle = "#1e293b";
@@ -705,7 +742,6 @@ function renderTile(id, x, y, size, targetCtx) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 5, y + 6, 6, 5);
   } else if (id === 6 || id === 7 || id === 21) {
-    // Bakır ve Kömür Madenleri Çok Daha Belirgin ve Estetik Yapıldı
     targetCtx.fillStyle = info.oreColor;
     targetCtx.fillRect(x + 5, y + 5, 8, 8);
     targetCtx.fillRect(x + 18, y + 16, 9, 9);
@@ -719,7 +755,6 @@ function renderTile(id, x, y, size, targetCtx) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 4, y + 4, 8, 8);
   } else if (id === 22) {
-    // Çalışma Masası Üst Görsel Dokusu
     targetCtx.fillStyle = "#78350f";
     targetCtx.fillRect(x + 4, y + 4, size - 8, 6);
     targetCtx.fillStyle = "#451a03";
@@ -946,13 +981,35 @@ function buildInventoryUI() {
     setupTooltipEvents(slotDiv);
     setupArmorDragAndDropEvents(slotDiv, type);
   });
+
+  buildInventoryCraftingUI();
+}
+
+function buildInventoryCraftingUI() {
+  updateItemCounts();
+  const list = document.getElementById("inventory-recipe-list");
+  list.innerHTML = "";
+  inventoryRecipes.forEach(r => {
+    let canCraft = Object.keys(r.cost).every(k => (itemCounts[k] || 0) >= r.cost[k]);
+    let card = document.createElement("div");
+    card.className = "recipe-card" + (canCraft ? "" : " disabled");
+    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">${canCraft ? "ÜRET" : "Eksik"}</span>`;
+    card.onclick = () => {
+      if (canCraft) {
+        Object.keys(r.cost).forEach(k => consumePlayerItem(parseInt(k), r.cost[k]));
+        addPlayerItem(r.item, r.count);
+        buildInventoryUI();
+      }
+    };
+    list.appendChild(card);
+  });
 }
 
 function buildCraftingUI() {
   updateItemCounts();
   const list = document.getElementById("crafting-recipe-list");
   list.innerHTML = "";
-  craftingRecipes.forEach(r => {
+  craftingTableRecipes.forEach(r => {
     let canCraft = Object.keys(r.cost).every(k => (itemCounts[k] || 0) >= r.cost[k]);
     let card = document.createElement("div");
     card.className = "recipe-card" + (canCraft ? "" : " disabled");
@@ -1041,23 +1098,23 @@ function setupArmorDragAndDropEvents(elem, armorType) {
   };
 }
 
-// Tüm Reçeteler (Taş seti dahil envanterden kaldırıldı, Çalışma Masasına bağlandı, Demir set eklendi)
-const craftingRecipes = [
+// Envanterden yapılabilen temel üretimler
+const inventoryRecipes = [
   { item: 8, count: 4, cost: { 4: 1 }, name: "Ahşap Blok (4x)" },
   { item: 9, count: 4, cost: { 8: 2 }, name: "Ahşap Çubuk (4x)" },
   { item: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası" },
   { item: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma" },
-  { item: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta" },
+  { item: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta" }
+];
+
+// Çalışma masası ile yapılabilen gelişmiş üretimler (Taş zırhlar kaldırıldı)
+const craftingTableRecipes = [
   { item: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma" },
   { item: 24, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Balta" },
   { item: 12, count: 1, cost: { 7: 3, 9: 2 }, name: "Bakır Kazma" },
   { item: 25, count: 1, cost: { 7: 3, 9: 2 }, name: "Bakır Balta" },
   { item: 26, count: 1, cost: { 21: 3, 9: 2 }, name: "Demir Kazma" },
   { item: 27, count: 1, cost: { 21: 3, 9: 2 }, name: "Demir Balta" },
-  { item: 13, count: 1, cost: { 3: 5 }, name: "Taş Kask" },
-  { item: 14, count: 1, cost: { 3: 8 }, name: "Taş Göğüslük" },
-  { item: 15, count: 1, cost: { 3: 6 }, name: "Taş Pantolon" },
-  { item: 16, count: 1, cost: { 3: 4 }, name: "Taş Bot" },
   { item: 17, count: 1, cost: { 7: 5 }, name: "Bakır Kask" },
   { item: 18, count: 1, cost: { 7: 8 }, name: "Bakır Göğüslük" },
   { item: 19, count: 1, cost: { 7: 6 }, name: "Bakır Pantolon" },
