@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Terraria 2D Survival Edition</title>
+  <title>Terraria 2D Survival Edition - Sabit Yatay Mod</title>
   <style>
     * {
       margin: 0;
@@ -145,7 +145,7 @@
       padding: 35px 15px 15px 15px;
       width: 95%;
       max-width: 520px;
-      max-height: 80vh;
+      max-height: 75vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y !important;
@@ -268,7 +268,7 @@
       padding: 35px 15px 15px 15px;
       width: 90%;
       max-width: 440px;
-      max-height: 80vh;
+      max-height: 75vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y !important;
@@ -323,7 +323,7 @@
       padding: 35px 15px 15px 15px;
       width: 90%;
       max-width: 380px;
-      max-height: 80vh;
+      max-height: 75vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y !important;
@@ -338,9 +338,30 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 5px;
     }
+
+    /* Yatay mod kilidi uyarısı / Ekran kilit ekranı katmanı */
+    #orientation-warning {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #0f172a;
+      z-index: 9999;
+      color: #fff;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
+
+  <div id="orientation-warning">
+    📱 Lütfen cihazınızı <b>yatay (landscape)</b> konuma getirin!
+  </div>
 
   <canvas id="game"></canvas>
   <div id="tooltip"></div>
@@ -421,20 +442,39 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 function resize() {
+  // Ekranı biraz daha büyük göstermek (karakteri ve dünyayı daha net/geniş kılmak) için ZOOM oranını optimize ettik
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+
+  // Cihaz yatayda mı kontrolü ve zorunlu yatay kilit ekranı yönlendirmesi
+  const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  const warningDiv = document.getElementById("orientation-warning");
+
+  if (isMobile && window.innerHeight > window.innerWidth) {
+    warningDiv.style.display = "flex";
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    }
+  } else {
+    warningDiv.style.display = "none";
+  }
+
+  if (isMobile) {
     document.getElementById("mobile-controls").style.display = "flex";
     document.getElementById("desktop-hint").style.display = "none";
   }
 }
 window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", resize);
 resize();
 
 function toggleFullScreen() {
   const btn = document.getElementById("fullscreen-btn");
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(err => {});
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    }
     btn.innerText = "⛶ Tam Ekrandan Çık";
   } else {
     if (document.exitFullscreen) {
@@ -454,7 +494,7 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 const TILE_SIZE = 32;
-const ZOOM = 1.35; 
+const ZOOM = 1.15; // Karakter ve ekranı biraz daha büyük göstermek için zoom küçültüldü (görüş alanı genişletildi)
 const MAP_W = 400; 
 const MAP_H = 160; 
 
@@ -1017,7 +1057,7 @@ function handleCanvasInteraction(clientX, clientY, isSecondary) {
       if (zDist < 35) {
         z.hp -= dmg;
         z.hitFlashTimer = 15;
-        z.vx = (player.x < z.x ? 1 : -1) * 4; // Dengeli kısa knockback
+        z.vx = (player.x < z.x ? 1 : -1) * 4; 
         z.vy = -2;
         hitSomething = true;
         if (z.hp <= 0) zombies.splice(idx, 1);
@@ -1029,8 +1069,8 @@ function handleCanvasInteraction(clientX, clientY, isSecondary) {
       if (aDist < 35) {
         a.hp -= dmg;
         a.hitFlashTimer = 15;
-        a.vx = (player.x < a.x ? 1 : -1) * 4; // Dengeli kısa knockback
-        z.vy = -2; // Düzeltilmiş hayvan vy
+        a.vx = (player.x < a.x ? 1 : -1) * 4; 
+        a.vy = -2; // Hayvanların vurulduğunda ölmesini sağlayan dikey tepme düzeltildi
         hitSomething = true;
         if (a.hp <= 0) {
           if (a.type === 'cow') {
@@ -1131,10 +1171,10 @@ function updatePhysics() {
     handlePlayerDeath();
   }
 
-  // Hayvanların AI ve Yerçekimi Düzeltmesi (Havada kalma sorunu giderildi)
+  // Hayvanların AI ve Yerçekimi Düzeltmesi
   animals.forEach(a => {
     if (a.hitFlashTimer > 0) a.hitFlashTimer--;
-    a.vy += 0.42; // Yerçekimi
+    a.vy += 0.42;
     a.actionTimer++;
 
     if (a.actionTimer > 120 + Math.random() * 150) {
@@ -1161,7 +1201,6 @@ function updatePhysics() {
       a.animFrame = 0;
     }
 
-    // Önünde engel varsa zıpla
     let checkAheadX = a.x + (a.dir > 0 ? a.w + 4 : -4);
     let atx = Math.floor(checkAheadX / TILE_SIZE);
     let aty = Math.floor((a.y + a.h - 2) / TILE_SIZE);
@@ -1177,7 +1216,6 @@ function updatePhysics() {
     }
 
     a.x += a.vx;
-    // Yatay çarpışma
     if (a.vx > 0 && isSolidBlock(a.x + a.w, a.y + a.h - 4)) {
       a.x = Math.floor((a.x + a.w) / TILE_SIZE) * TILE_SIZE - a.w - 0.1;
       a.vx = 0;
@@ -1189,7 +1227,6 @@ function updatePhysics() {
     }
 
     a.y += a.vy;
-    // Dikey çarpışma ve yere basma (Havada uçma hatası kesin çözümü)
     let btx = Math.floor((a.x + a.w/2) / TILE_SIZE);
     let bty = Math.floor((a.y + a.h) / TILE_SIZE);
     if (bty >= 0 && bty < MAP_H && btx >= 0 && btx < MAP_W) {
@@ -1388,7 +1425,6 @@ function renderTile(id, x, y, size, targetCtx) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 6, y + 3, 4, size - 6);
   } else if (id === 5) {
-    // Yaprak netleştirilmiş renk ve doku detaylandırması
     targetCtx.fillStyle = "#16a34a";
     targetCtx.fillRect(x + 3, y + 3, size - 6, size - 6);
     targetCtx.fillStyle = "#86efac";
@@ -1424,24 +1460,28 @@ function renderPlayerTerraria(screenX, screenY) {
   ctx.fillRect(-6, 5, 5, 10);
   ctx.fillRect(2, 5, 5, 10);
 
-  // Üst Gövde (Siyah ve Kırmızı Pikselli Açık Gömlek + Alttan Beyaz Tişört)
+  // Üst Gövde: Düzeltilmiş Tasarım (Siyah/Kırmızı Pikselli sıra sıra gömlek, önü açık, alttan beyaz tişört net görünen şık stil)
   let chestItem = ITEM_TYPES[equippedArmor.chest.id];
   if (chestItem) {
     ctx.fillStyle = chestItem.color;
     ctx.fillRect(-7, -8, 14, 13);
   } else {
-    // Beyaz Tişört Arka Planı
-    ctx.fillStyle = "#f8fafc";
+    // Alttaki Beyaz Tişört Tabanı (Ön orta kısım açık)
+    ctx.fillStyle = "#ffffff";
     ctx.fillRect(-7, -8, 14, 13);
-    // Siyah ve Kırmızı Çizgili/Pikselli Gömlek Katmanları (Önü açık ortası beyaz görünecek şekilde)
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(-7, -8, 4, 13);
-    ctx.fillRect(3, -8, 4, 13);
-    ctx.fillStyle = "#ef4444";
-    ctx.fillRect(-7, -4, 4, 3);
-    ctx.fillRect(3, -4, 4, 3);
-    ctx.fillRect(-7, 2, 4, 3);
-    ctx.fillRect(3, 2, 4, 3);
+    
+    // Siyah ve Kırmızı Sıra Sıra Pikselli Şerit Tasarımı
+    ctx.fillStyle = "#111827"; // Siyah pikseller
+    ctx.fillRect(-7, -8, 3, 13);
+    ctx.fillRect(4, -8, 3, 13);
+    
+    ctx.fillStyle = "#dc2626"; // Kırmızı pikselli şeritler
+    ctx.fillRect(-7, -6, 3, 2);
+    ctx.fillRect(4, -6, 3, 2);
+    ctx.fillRect(-7, -1, 3, 2);
+    ctx.fillRect(4, -1, 3, 2);
+    ctx.fillRect(-7, 4, 3, 2);
+    ctx.fillRect(4, 4, 3, 2);
   }
 
   // Sağ Kol
