@@ -90,17 +90,15 @@
       background: rgba(56, 189, 248, 0.5);
       transform: scale(0.92);
     }
-    /* Eylem tuşu modları için stil */
     .touch-btn.place-mode {
       border-color: #f59e0b;
       background: rgba(120, 53, 15, 0.8);
       box-shadow: 0 0 15px rgba(245, 158, 11, 0.8);
     }
 
-    #fullscreen-btn {
+    #fullscreen-btn, #reset-btn {
       position: absolute;
       top: 10px;
-      right: 10px;
       z-index: 20;
       background: rgba(15, 23, 42, 0.8);
       border: 2px solid rgba(56, 189, 248, 0.6);
@@ -111,6 +109,8 @@
       font-weight: bold;
       cursor: pointer;
     }
+    #fullscreen-btn { right: 10px; }
+    #reset-btn { right: 115px; border-color: rgba(239, 68, 68, 0.6); background: rgba(127, 29, 29, 0.6); }
 
     .modal-close-x {
       position: absolute;
@@ -262,7 +262,7 @@
       border-radius: 12px;
       padding: 25px 15px 15px 15px;
       width: 90%;
-      max-width: 400px;
+      max-width: 420px;
       max-height: 80vh;
       overflow-y: auto;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
@@ -290,7 +290,7 @@
       border-radius: 12px;
       padding: 25px 15px 15px 15px;
       width: 90%;
-      max-width: 350px;
+      max-width: 380px;
       z-index: 26;
       color: #fff;
     }
@@ -308,6 +308,7 @@
 
   <canvas id="game"></canvas>
   <div id="tooltip"></div>
+  <button id="reset-btn" onclick="resetGameData()">🔄 Sıfırla</button>
   <button id="fullscreen-btn" onclick="toggleFullScreen()">⛶ Tam Ekran</button>
 
   <div id="ui">
@@ -354,7 +355,7 @@
       </div>
     </div>
     <div class="quick-craft-panel">
-      <div class="section-title">Temel Üretim (Envanterden Yapılabilir)</div>
+      <div class="section-title">Temel Üretim (Sadece Odun, Çubuk ve Çalışma Masası)</div>
       <div class="recipe-list" id="inventory-recipe-list"></div>
     </div>
   </div>
@@ -362,14 +363,14 @@
   <div id="crafting-modal">
     <div class="modal-close-x" onclick="toggleCraftingModal()">✕</div>
     <h2>ÇALIŞMA MASASI (GELİŞMİŞ ÜRETİM)</h2>
-    <div class="section-title" style="margin-bottom: 6px;">Mevcut Üretim Reçeteleri</div>
+    <div class="section-title" style="margin-bottom: 6px;">Mevcut Üretim Reçeteleri (Tüm Eşyalar)</div>
     <div class="recipe-list" id="crafting-recipe-list"></div>
   </div>
 
   <div id="furnace-modal">
     <div class="modal-close-x" onclick="toggleFurnaceModal()">✕</div>
     <h2>FIRIN (YEMEK PİŞİRME & ERİTME)</h2>
-    <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">Çiğ etleri pişir veya madenleri erit! Kömür yakıt olarak kullanılır.</div>
+    <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">Çiğ etleri pişir! Kömür yakıt olarak kullanılır.</div>
     <div class="recipe-list" id="furnace-recipe-list"></div>
   </div>
 
@@ -423,6 +424,7 @@ const ITEM_TYPES = {
   35: { name: "Pişmiş İnek Eti", solid: false, isFood: true, foodValue: 3, color: "#7f1d1d" },
   36: { name: "Çiğ Koyun Eti", solid: false, isFood: true, foodValue: 1, color: "#fca5a5" },
   37: { name: "Pişmiş Koyun Eti", solid: false, isFood: true, foodValue: 3, color: "#991b1b" },
+  39: { name: "Yün", solid: false, isItem: true, color: "#f8fafc" },
 
   38: { name: "Katman Kayası (Bedrock)", solid: true, unbreakable: true, color: "#171717", darkColor: "#0a0a0a", borderHighlight: "#262626" },
 
@@ -501,6 +503,20 @@ let currentDay = 1;
 let spawnBedX = -1;
 let spawnBedY = -1;
 
+let clouds = [];
+function initClouds() {
+  clouds = [];
+  for (let i = 0; i < 12; i++) {
+    clouds.push({
+      x: Math.random() * (MAP_W * TILE_SIZE),
+      y: Math.random() * (surfaceY * TILE_SIZE * 0.5),
+      speed: 0.2 + Math.random() * 0.3,
+      type: Math.floor(Math.random() * 3)
+    });
+  }
+}
+initClouds();
+
 let player = {
   x: 20 * TILE_SIZE,
   y: (surfaceY - 4) * TILE_SIZE,
@@ -517,7 +533,7 @@ let player = {
   animFrame: 0,
   health: 100,
   maxHealth: 100,
-  hunger: 10,     // Açlık maksimum 10 bar
+  hunger: 10,
   maxHunger: 10
 };
 
@@ -526,7 +542,6 @@ let animals = [];
 
 function spawnEntities() {
   animals = [];
-  // Daha fazla inek ve koyun (sayı artırıldı: 25)
   for (let i = 0; i < 25; i++) {
     let ax = Math.floor(Math.random() * (MAP_W - 40)) + 20;
     let ay = 0;
@@ -536,20 +551,18 @@ function spawnEntities() {
     animals.push({
       x: ax * TILE_SIZE,
       y: ay * TILE_SIZE,
-      w: 24,
-      h: 20,
+      w: 26,
+      h: 22,
       type: Math.random() < 0.5 ? 'cow' : 'sheep',
       vx: 0,
       vy: 0,
       hp: 10,
-      dir: Math.random() < 0.5 ? 1 : -1,
-      timer: 0
+      dir: Math.random() < 0.5 ? 1 : -1
     });
   }
 }
 spawnEntities();
 
-// localStorage Kayıt Yükleme Sistemi
 function loadGameData() {
   try {
     const saved = localStorage.getItem('terraria_2d_save');
@@ -590,7 +603,13 @@ function saveGameData() {
   } catch(e) {}
 }
 
-// Sekme kapatılırken veya çıkılırken otomatik kayıt
+function resetGameData() {
+  if (confirm("Dünyayı ve tüm verileri sıfırlamak istediğine emin misin?")) {
+    localStorage.removeItem('terraria_2d_save');
+    location.reload();
+  }
+}
+
 window.addEventListener("beforeunload", () => {
   saveGameData();
 });
@@ -683,7 +702,7 @@ function consumePlayerItem(itemId, amount = 1) {
   updateItemCounts();
 }
 
-function respawnPlayer() {
+function handlePlayerDeath() {
   player.health = player.maxHealth;
   player.hunger = player.maxHunger;
   for (let i = 0; i < hotbar.length; i++) { hotbar[i].id = 0; hotbar[i].count = 0; }
@@ -728,7 +747,7 @@ function checkTreeLeavesDecay(tx, ty) {
 
 let keys = {};
 let mining = { active: false, x: -1, y: -1, progress: 0 };
-let mobilePlaceMode = false; // Mobil eylem tuşu modu (false: Kırma, true: Koyma/Etkileşim)
+let mobilePlaceMode = false;
 
 window.addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
@@ -761,7 +780,6 @@ bindTouchButton("btn-jump", () => {
 });
 bindTouchButton("btn-inv", () => toggleInventoryModal());
 
-// Eylem Düğmesi (Mobil): Tıklandığında mod değiştirir, basılı tutulduğunda işlem yapar
 const actionBtn = document.getElementById("btn-action");
 if (actionBtn) {
   actionBtn.addEventListener("click", (e) => {
@@ -787,7 +805,6 @@ function updateDayNightCycle() {
   let dayText = isDay ? "☀️ Gündüz" : "🌙 Gece";
   document.getElementById("time-display").innerText = `${dayText} (${currentDay}. Gün)`;
 
-  // Can yenilenmesi: Her 2 saniyede (120 tick) 1 kalp, açlık 4'ün üstündeyse
   if (totalGameTicks % 120 === 0 && player.hunger >= 4 && player.health < player.maxHealth) {
     player.health = Math.min(player.maxHealth, player.health + 10);
   }
@@ -824,7 +841,6 @@ let camY = player.y;
 
 canvas.addEventListener("contextmenu", e => e.preventDefault());
 
-// Doğrudan ekrana dokunarak veya tıklayarak blok kırma / koyma
 canvas.addEventListener("mousedown", e => {
   const rect = canvas.getBoundingClientRect();
   const mouseScreenX = e.clientX - rect.left;
@@ -847,7 +863,6 @@ canvas.addEventListener("mousedown", e => {
 
   if (dist > TILE_SIZE * 5) return;
 
-  // Mobil modda koyma modu aktifse VEYA bilgisayarda sağ tık ise
   if (e.button === 2 || mobilePlaceMode) {
     let clickedBlock = world[ty]?.[tx];
     if (clickedBlock === 22) {
@@ -890,7 +905,6 @@ canvas.addEventListener("mousedown", e => {
     zombies.forEach((z, idx) => {
       let zDist = Math.hypot((z.x + z.w/2) - worldMouseX, (z.y + z.h/2) - worldMouseY);
       if (zDist < 30) {
-        let activeSlot = hotbar[player.selectedSlot];
         let dmg = 1; 
         z.hp -= dmg;
         hitSomething = true;
@@ -908,6 +922,7 @@ canvas.addEventListener("mousedown", e => {
             addPlayerItem(34, 1); 
           } else {
             addPlayerItem(36, 1); 
+            addPlayerItem(39, 1); // Koyundan yün düşer
           }
           animals.splice(idx, 1);
         }
@@ -934,12 +949,18 @@ function isSolidBlock(px, py) {
   let ty = Math.floor(py / TILE_SIZE);
   if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return true;
   let blockId = world[ty][tx];
-  if (blockId === 5) return false;
+  if (blockId === 5) return false; // Yapraklardan geçilebilir
   return ITEM_TYPES[blockId].solid;
 }
 
 function updatePhysics() {
   updateDayNightCycle();
+
+  // Harita sınırından (Void) düşme kontrolü
+  if (player.x < 0 || player.x > MAP_W * TILE_SIZE) {
+    handlePlayerDeath();
+    return;
+  }
 
   if (keys["a"] || keys["arrowleft"]) {
     player.vx -= player.accX;
@@ -976,10 +997,10 @@ function updatePhysics() {
   }
 
   if (player.y > MAP_H * TILE_SIZE) {
-    respawnPlayer();
+    handlePlayerDeath();
   }
 
-  // Hayvanların AI hareketleri (daha yavaş yürümeleri sağlandı: hız 0.4)
+  // Hayvan hareketleri (Daha yavaş yürüyüş hızı: 0.4)
   animals.forEach(a => {
     a.vy += 0.42;
     a.x += a.dir * 0.4;
@@ -1015,7 +1036,7 @@ function updatePhysics() {
     if (hitBoxOverlap && totalGameTicks % 60 === 0) {
       player.health -= 50;
       if (player.health <= 0) {
-        respawnPlayer();
+        handlePlayerDeath();
       }
     }
   });
@@ -1070,6 +1091,7 @@ function renderToolGraphic(info, x, y, size, targetCtx) {
   targetCtx.restore();
 }
 
+// Geliştirilmiş ve Düzgün Gıda / Eşya / Blok Modellemeleri
 function renderTile(id, x, y, size, targetCtx) {
   if (!id || id === 0) return;
   const info = ITEM_TYPES[id];
@@ -1079,9 +1101,20 @@ function renderTile(id, x, y, size, targetCtx) {
     return;
   }
 
-  if (info.isItem || info.isFood) {
+  if (info.isFood) {
     targetCtx.fillStyle = info.color;
-    targetCtx.fillRect(x + size / 2 - 4, y + 4, 8, size - 8);
+    targetCtx.fillRect(x + 4, y + 8, size - 8, size - 14);
+    targetCtx.fillStyle = "#fecdd3";
+    targetCtx.fillRect(x + 8, y + 10, 4, 4);
+    return;
+  }
+
+  if (info.isItem) {
+    targetCtx.fillStyle = info.color;
+    targetCtx.fillRect(x + 6, y + 6, size - 12, size - 12);
+    targetCtx.strokeStyle = "#000";
+    targetCtx.lineWidth = 1;
+    targetCtx.strokeRect(x + 6, y + 6, size - 12, size - 12);
     return;
   }
 
@@ -1210,42 +1243,69 @@ function renderZombie(z, drawCamX, drawCamY) {
   ctx.restore();
 }
 
-// Düzeltilmiş ve Detaylı Hayvan Modellemeleri (İnek ve Koyun)
+// Düzgün ve Estetik İnek ve Koyun Modellemeri
 function renderAnimal(a, drawCamX, drawCamY) {
   let ax = a.x - drawCamX;
   let ay = a.y - drawCamY;
   ctx.save();
   if (a.type === 'cow') {
     // İnek Gövdesi
-    ctx.fillStyle = "#f1f5f9";
-    ctx.fillRect(ax, ay + 4, a.w, a.h - 6);
-    // Siyah Lekeler
-    ctx.fillStyle = "#1e293b";
-    ctx.fillRect(ax + 4, ay + 6, 8, 8);
-    ctx.fillRect(ax + 14, ay + 10, 6, 6);
-    // İnek Kafası ve Boynuzlar
-    ctx.fillStyle = "#f1f5f9";
-    ctx.fillRect(ax + a.w - 6, ay, 10, 10);
-    ctx.fillStyle = "#cbd5e1";
-    ctx.fillRect(ax + a.w - 4, ay - 3, 3, 3);
-    // Ayaklar
+    ctx.fillStyle = "#e2e8f0";
+    ctx.fillRect(ax, ay + 6, a.w, a.h - 8);
+    // Siyah Desenler
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(ax + 4, ay + 8, 8, 8);
+    ctx.fillRect(ax + 15, ay + 12, 7, 6);
+    // İnek Kafası & Boynuz
+    ctx.fillStyle = "#e2e8f0";
+    ctx.fillRect(ax + a.w - 6, ay + 2, 10, 10);
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillRect(ax + a.w - 3, ay - 2, 3, 4);
+    // Bacaklar
     ctx.fillStyle = "#334155";
     ctx.fillRect(ax + 3, ay + a.h - 2, 4, 4);
     ctx.fillRect(ax + a.w - 7, ay + a.h - 2, 4, 4);
   } else {
-    // Koyun Yünü (Kabarık blok görünüm)
+    // Koyun Yünü Gövde
+    ctx.fillStyle = "#f1f5f9";
+    ctx.fillRect(ax - 2, ay + 4, a.w + 4, a.h - 6);
     ctx.fillStyle = "#cbd5e1";
-    ctx.fillRect(ax - 2, ay + 2, a.w + 4, a.h - 4);
-    ctx.fillStyle = "#f8fafc";
-    ctx.fillRect(ax, ay, a.w, a.h - 4);
+    ctx.fillRect(ax, ay + 6, a.w, a.h - 8);
     // Koyun Kafası
-    ctx.fillStyle = "#475569";
-    ctx.fillRect(ax + a.w - 4, ay + 4, 8, 8);
-    // Ayaklar
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(ax + a.w - 5, ay + 4, 8, 8);
+    // Bacaklar
     ctx.fillStyle = "#1e293b";
     ctx.fillRect(ax + 4, ay + a.h - 2, 3, 4);
     ctx.fillRect(ax + a.w - 7, ay + a.h - 2, 3, 4);
   }
+  ctx.restore();
+}
+
+function renderClouds(drawCamX, drawCamY, viewW, viewH) {
+  ctx.save();
+  clouds.forEach(c => {
+    c.x += c.speed;
+    if (c.x > MAP_W * TILE_SIZE) c.x = -150;
+
+    let cx = c.x - drawCamX * 0.4;
+    let cy = c.y - drawCamY * 0.2;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+    if (c.type === 0) {
+      // 3 yan, 2 üst
+      ctx.fillRect(cx, cy + 10, 60, 15);
+      ctx.fillRect(cx + 10, cy, 30, 10);
+    } else if (c.type === 1) {
+      // 4 alt, 2 üst
+      ctx.fillRect(cx, cy + 10, 80, 15);
+      ctx.fillRect(cx + 20, cy, 35, 10);
+    } else {
+      // Standart kare kübik bulut
+      ctx.fillRect(cx, cy + 5, 50, 15);
+      ctx.fillRect(cx + 15, cy - 5, 20, 10);
+    }
+  });
   ctx.restore();
 }
 
@@ -1261,6 +1321,7 @@ function render() {
   let drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, camX - viewW / 2));
   let drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, camY - viewH / 2));
 
+  // Güneş ve Ay Döngüsü Gökyüzü Renkleri
   let skyGrad = ctx.createLinearGradient(0, 0, 0, viewH);
   if (timeOfDay < 0.5) {
     skyGrad.addColorStop(0, "#0284c7");
@@ -1271,6 +1332,27 @@ function render() {
   }
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, viewW, viewH);
+
+  // Güneş ve Ay Doğudan Batıya Hareket
+  let celestialAngle = timeOfDay * Math.PI * 2;
+  let cxCenter = drawCamX + viewW / 2;
+  let cyCenter = drawCamY + viewH / 2;
+  let orbitRadius = 400;
+  let sunX = cxCenter + Math.cos(celestialAngle - Math.PI/2) * orbitRadius - drawCamX;
+  let sunY = cyCenter + Math.sin(celestialAngle - Math.PI/2) * orbitRadius - drawCamY;
+  let moonX = cxCenter + Math.cos(celestialAngle + Math.PI/2) * orbitRadius - drawCamX;
+  let moonY = cyCenter + Math.sin(celestialAngle + Math.PI/2) * orbitRadius - drawCamY;
+
+  if (timeOfDay < 0.5) {
+    ctx.fillStyle = "#facc15";
+    ctx.beginPath(); ctx.arc(sunX, sunY, 16, 0, Math.PI * 2); ctx.fill();
+  } else {
+    ctx.fillStyle = "#f1f5f9";
+    ctx.beginPath(); ctx.arc(moonX, moonY, 14, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Bulutları Çiz
+  renderClouds(drawCamX, drawCamY, viewW, viewH);
 
   let startX = Math.max(0, Math.floor(drawCamX / TILE_SIZE));
   let endX = Math.min(MAP_W, Math.ceil((drawCamX + viewW) / TILE_SIZE));
@@ -1416,6 +1498,7 @@ function buildInventoryUI() {
   buildInventoryCraftingUI();
 }
 
+// Envanterde Sadece Ahşap Blok, Çubuk ve Çalışma Masası Üretilir
 function buildInventoryCraftingUI() {
   updateItemCounts();
   const list = document.getElementById("inventory-recipe-list");
@@ -1424,11 +1507,7 @@ function buildInventoryCraftingUI() {
   const recipes = [
     { result: 8, count: 4, cost: { 4: 1 }, name: "4x Ahşap Blok (1 Odun)" },
     { result: 9, count: 4, cost: { 8: 1 }, name: "4x Çubuk (1 Ahşap Blok)" },
-    { result: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası (4x Ahşap Blok)" },
-    { result: 32, count: 1, cost: { 8: 3, 5: 3 }, name: "Yatak (3 Ahşap, 3 Yaprak)" },
-    { result: 33, count: 1, cost: { 3: 8 }, name: "Fırın (8 Taş)" },
-    { result: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma (3 Ahşap, 2 Çubuk)" },
-    { result: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta (3 Ahşap, 2 Çubuk)" }
+    { result: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası (4x Ahşap Blok)" }
   ];
 
   recipes.forEach(r => {
@@ -1457,12 +1536,21 @@ function buildInventoryCraftingUI() {
   });
 }
 
+// Çalışma Masasında Tüm Tarifler (Envanterdekiler + Aletler, Zırhlar, Yatak 3 yün 3 ahşap)
 function buildCraftingTableUI() {
   updateItemCounts();
   const list = document.getElementById("crafting-recipe-list");
   list.innerHTML = "";
 
   const recipes = [
+    { result: 8, count: 4, cost: { 4: 1 }, name: "4x Ahşap Blok (1 Odun)" },
+    { result: 9, count: 4, cost: { 8: 1 }, name: "4x Çubuk (1 Ahşap Blok)" },
+    { result: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası (4x Ahşap Blok)" },
+    { result: 32, count: 1, cost: { 39: 3, 8: 3 }, name: "Yatak (3 Yün, 3 Ahşap Blok)" },
+    { result: 33, count: 1, cost: { 3: 8 }, name: "Fırın (8 Taş)" },
+
+    { result: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma (3 Ahşap, 2 Çubuk)" },
+    { result: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta (3 Ahşap, 2 Çubuk)" },
     { result: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma (3 Taş, 2 Çubuk)" },
     { result: 24, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Balta (3 Taş, 2 Çubuk)" },
     { result: 12, count: 1, cost: { 7: 3, 9: 2 }, name: "Bakır Kazma (3 Bakır, 2 Çubuk)" },
@@ -1645,7 +1733,6 @@ function toggleFurnaceModal() {
   }
 }
 
-// Oyunu başlatırken kayıt varsa yükle
 loadGameData();
 
 function gameLoop() {
