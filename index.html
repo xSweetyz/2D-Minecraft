@@ -1042,9 +1042,10 @@ function buildInventoryCraftingUI() {
   const list = document.getElementById("inventory-recipe-list");
   list.innerHTML = "";
   
+  // Minecraft standartlarına uygun envanter tarifleri (örn: 1 odun -> 4 tahta blok, tahta kazma için 3 tahta + 2 çubuk vb.)
   const recipes = [
-    { result: 8, count: 4, cost: { 4: 1 }, name: "4x Ahşap Blok (Odun)" },
-    { result: 9, count: 4, cost: { 8: 1 }, name: "4x Çubuk (Ahşap Blok)" },
+    { result: 8, count: 4, cost: { 4: 1 }, name: "4x Ahşap Blok (1 Odun)" },
+    { result: 9, count: 4, cost: { 8: 1 }, name: "4x Çubuk (1 Ahşap Blok)" },
     { result: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası (4x Ahşap Blok)" },
     { result: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma (3 Ahşap, 2 Çubuk)" },
     { result: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta (3 Ahşap, 2 Çubuk)" }
@@ -1081,23 +1082,24 @@ function buildCraftingTableUI() {
   const list = document.getElementById("crafting-recipe-list");
   list.innerHTML = "";
 
+  // Minecraft standartlarına uyarlanmış Çalışma Masası maliyetleri (Kazma/Balta için 3 malzeme + 2 çubuk; Setler kask:5, göğüs:8, pantolon:7, bot:4 olacak şekilde ayarlandı)
   const recipes = [
-    { result: 11, count: 1, cost: { 3: 10, 9: 2 }, name: "Taş Kazma (10 Taş, 2 Çubuk)" },
-    { result: 24, count: 1, cost: { 3: 10, 9: 2 }, name: "Taş Balta (10 Taş, 2 Çubuk)" },
-    { result: 12, count: 1, cost: { 7: 10, 9: 2 }, name: "Bakır Kazma (10 Bakır, 2 Çubuk)" },
-    { result: 25, count: 1, cost: { 7: 10, 9: 2 }, name: "Bakır Balta (10 Bakır, 2 Çubuk)" },
-    { result: 26, count: 1, cost: { 21: 10, 9: 2 }, name: "Demir Kazma (10 Demir, 2 Çubuk)" },
-    { result: 27, count: 1, cost: { 21: 10, 9: 2 }, name: "Demir Balta (10 Demir, 2 Çubuk)" },
+    { result: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma (3 Taş, 2 Çubuk)" },
+    { result: 24, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Balta (3 Taş, 2 Çubuk)" },
+    { result: 12, count: 1, cost: { 7: 3, 9: 2 }, name: "Bakır Kazma (3 Bakır, 2 Çubuk)" },
+    { result: 25, count: 1, cost: { 7: 3, 9: 2 }, name: "Bakır Balta (3 Bakır, 2 Çubuk)" },
+    { result: 26, count: 1, cost: { 21: 3, 9: 2 }, name: "Demir Kazma (3 Demir, 2 Çubuk)" },
+    { result: 27, count: 1, cost: { 21: 3, 9: 2 }, name: "Demir Balta (3 Demir, 2 Çubuk)" },
     
-    { result: 17, count: 1, cost: { 7: 15 }, name: "Bakır Kask (15 Bakır)" },
-    { result: 18, count: 1, cost: { 7: 25 }, name: "Bakır Göğüslük (25 Bakır)" },
-    { result: 19, count: 1, cost: { 7: 20 }, name: "Bakır Pantolon (20 Bakır)" },
-    { result: 20, count: 1, cost: { 7: 12 }, name: "Bakır Bot (12 Bakır)" },
+    { result: 17, count: 1, cost: { 7: 5 }, name: "Bakır Kask (5 Bakır)" },
+    { result: 18, count: 1, cost: { 7: 8 }, name: "Bakır Göğüslük (8 Bakır)" },
+    { result: 19, count: 1, cost: { 7: 7 }, name: "Bakır Pantolon (7 Bakır)" },
+    { result: 20, count: 1, cost: { 7: 4 }, name: "Bakır Bot (4 Bakır)" },
 
-    { result: 28, count: 1, cost: { 21: 15 }, name: "Demir Kask (15 Demir)" },
-    { result: 29, count: 1, cost: { 21: 25 }, name: "Demir Göğüslük (25 Demir)" },
-    { result: 30, count: 1, cost: { 21: 20 }, name: "Demir Pantolon (20 Demir)" },
-    { result: 31, count: 1, cost: { 21: 12 }, name: "Demir Bot (12 Demir)" }
+    { result: 28, count: 1, cost: { 21: 5 }, name: "Demir Kask (5 Demir)" },
+    { result: 29, count: 1, cost: { 21: 8 }, name: "Demir Göğüslük (8 Demir)" },
+    { result: 30, count: 1, cost: { 21: 7 }, name: "Demir Pantolon (7 Demir)" },
+    { result: 31, count: 1, cost: { 21: 4 }, name: "Demir Bot (4 Demir)" }
   ];
 
   recipes.forEach(r => {
