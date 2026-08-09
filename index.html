@@ -148,7 +148,7 @@
       max-height: 85vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
+      touch-action: pan-y !important;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
       z-index: 20;
       color: #fff;
@@ -239,7 +239,7 @@
       max-height: 140px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
+      touch-action: pan-y !important;
     }
     .recipe-card {
       display: flex;
@@ -271,7 +271,7 @@
       max-height: 85vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
+      touch-action: pan-y !important;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
       z-index: 25;
       color: #fff;
@@ -291,7 +291,7 @@
       margin-bottom: 8px;
       overflow-x: auto;
       padding-bottom: 4px;
-      touch-action: pan-x;
+      touch-action: pan-x !important;
     }
     .cat-tab {
       background: rgba(30, 41, 59, 0.9);
@@ -326,7 +326,7 @@
       max-height: 85vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
+      touch-action: pan-y !important;
       z-index: 26;
       color: #fff;
     }
@@ -432,17 +432,28 @@ window.addEventListener("resize", resize);
 resize();
 
 function toggleFullScreen() {
+  const btn = document.getElementById("fullscreen-btn");
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(err => {});
+    btn.innerText = "⛶ Tam Ekrandan Çık";
   } else {
     if (document.exitFullscreen) {
       document.exitFullscreen();
     }
+    btn.innerText = "⛶ Tam Ekran";
   }
 }
 
+document.addEventListener("fullscreenchange", () => {
+  const btn = document.getElementById("fullscreen-btn");
+  if (!document.fullscreenElement) {
+    btn.innerText = "⛶ Tam Ekran";
+  } else {
+    btn.innerText = "⛶ Tam Ekrandan Çık";
+  }
+});
+
 const TILE_SIZE = 32;
-// Telefonda daha geniş açıyla her şeyin sığması için ZOOM değeri hafifçe küçültüldü
 const ZOOM = 1.35; 
 const MAP_W = 400; 
 const MAP_H = 160; 
@@ -481,6 +492,10 @@ const ITEM_TYPES = {
   25: { name: "Bakır Balta", solid: false, isTool: true, toolType: 'axe', tier: 3, speed: 14.0, color: "#f97316" },
   26: { name: "Demir Kazma", solid: false, isTool: true, toolType: 'pickaxe', tier: 4, speed: 20.0, color: "#cbd5e1" },
   27: { name: "Demir Balta", solid: false, isTool: true, toolType: 'axe', tier: 4, speed: 20.0, color: "#cbd5e1" },
+
+  50: { name: "Tahta Kılıç", solid: false, isWeapon: true, damage: 3, color: "#d97706" },
+  51: { name: "Taş Kılıç", solid: false, isWeapon: true, damage: 5, color: "#94a3b8" },
+  52: { name: "Demir Kılıç", solid: false, isWeapon: true, damage: 8, color: "#cbd5e1" },
 
   17: { name: "Bakır Kask", solid: false, isArmor: true, armorType: 'head', color: "#ea580c" },
   18: { name: "Bakır Göğüslük", solid: false, isArmor: true, armorType: 'chest', color: "#ea580c" },
@@ -601,8 +616,13 @@ function spawnEntities() {
       type: Math.random() < 0.5 ? 'cow' : 'sheep',
       vx: 0,
       vy: 0,
-      hp: 10,
-      dir: Math.random() < 0.5 ? 1 : -1
+      hp: 5,
+      maxHp: 5,
+      dir: Math.random() < 0.5 ? 1 : -1,
+      animFrame: 0,
+      actionTimer: Math.random() * 100,
+      state: 'idle', // 'idle', 'walk', 'jump'
+      hitFlashTimer: 0
     });
   }
 }
@@ -680,6 +700,7 @@ function resetGameData() {
     spawnBedX = -1;
     spawnBedY = -1;
     initWorld();
+    spawnEntities();
     player.x = 20 * TILE_SIZE;
     player.y = (surfaceY - 4) * TILE_SIZE;
     player.health = player.maxHealth;
@@ -899,8 +920,13 @@ function updateDayNightCycle() {
             h: 42,
             vx: 0,
             vy: 0,
-            hp: 2, 
-            facing: 1
+            hp: 10,
+            maxHp: 10,
+            facing: 1,
+            animFrame: 0,
+            actionTimer: Math.random() * 100,
+            state: 'walk',
+            hitFlashTimer: 0
           });
           break;
         }
@@ -969,7 +995,7 @@ function handleCanvasInteraction(clientX, clientY, isSecondary) {
       return;
     }
 
-    if (clickedBlock === 0 && activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor && !ITEM_TYPES[activeItem].isFood) {
+    if (clickedBlock === 0 && activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor && !ITEM_TYPES[activeItem].isFood && !ITEM_TYPES[activeItem].isWeapon) {
       world[ty][tx] = activeItem;
       if (activeItem === 32) {
         spawnBedX = tx;
@@ -979,11 +1005,20 @@ function handleCanvasInteraction(clientX, clientY, isSecondary) {
     }
   } else {
     let hitSomething = false;
+    let activeSlot = hotbar[player.selectedSlot];
+    let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
+    let dmg = 1; // Varsayılan yumruk hasarı
+    if (activeItem && ITEM_TYPES[activeItem].isWeapon) {
+      dmg = ITEM_TYPES[activeItem].damage;
+    }
+
     zombies.forEach((z, idx) => {
       let zDist = Math.hypot((z.x + z.w/2) - worldMouseX, (z.y + z.h/2) - worldMouseY);
-      if (zDist < 30) {
-        let dmg = 1; 
+      if (zDist < 35) {
         z.hp -= dmg;
+        z.hitFlashTimer = 15; // 15 frame kırmızı görünüm
+        z.vx = (player.x < z.x ? 1 : -1) * TILE_SIZE; // 1 blok knockback
+        z.vy = -3;
         hitSomething = true;
         if (z.hp <= 0) zombies.splice(idx, 1);
       }
@@ -991,8 +1026,11 @@ function handleCanvasInteraction(clientX, clientY, isSecondary) {
 
     animals.forEach((a, idx) => {
       let aDist = Math.hypot((a.x + a.w/2) - worldMouseX, (a.y + a.h/2) - worldMouseY);
-      if (aDist < 30) {
-        a.hp -= 5;
+      if (aDist < 35) {
+        a.hp -= dmg;
+        a.hitFlashTimer = 15;
+        a.vx = (player.x < a.x ? 1 : -1) * TILE_SIZE;
+        a.vy = -3;
         hitSomething = true;
         if (a.hp <= 0) {
           if (a.type === 'cow') {
@@ -1043,7 +1081,7 @@ function isSolidBlock(px, py) {
   let ty = Math.floor(py / TILE_SIZE);
   if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return true;
   let blockId = world[ty][tx];
-  if (blockId === 5) return false;
+  if (blockId === 5) return false; // Yaprakların içinden geçilir
   return ITEM_TYPES[blockId].solid;
 }
 
@@ -1093,27 +1131,89 @@ function updatePhysics() {
     handlePlayerDeath();
   }
 
+  // Hayvanların Rastgele AI Hareketi
   animals.forEach(a => {
+    if (a.hitFlashTimer > 0) a.hitFlashTimer--;
     a.vy += 0.42;
-    a.x += a.dir * 0.4;
-    if (Math.random() < 0.01) a.dir *= -1;
-    let atx = Math.floor((a.x + a.w/2) / TILE_SIZE);
-    let aty = Math.floor((a.y + a.h) / TILE_SIZE);
-    if (atx >= 0 && atx < MAP_W && aty >= 0 && aty < MAP_H && isSolidBlock(a.x, a.y + a.h)) {
-      a.y = aty * TILE_SIZE - a.h;
+    a.actionTimer++;
+
+    if (a.actionTimer > 120 + Math.random() * 150) {
+      a.actionTimer = 0;
+      let rand = Math.random();
+      if (rand < 0.4) {
+        a.state = 'idle';
+        a.vx = 0;
+      } else if (rand < 0.8) {
+        a.state = 'walk';
+        a.dir = Math.random() < 0.5 ? 1 : -1;
+      } else {
+        a.state = 'jump';
+        a.dir = Math.random() < 0.5 ? 1 : -1;
+        a.vy = -5;
+      }
+    }
+
+    if (a.state === 'walk' || a.state === 'jump') {
+      a.vx = a.dir * 0.9;
+      a.animFrame += 0.15;
+    } else {
+      a.vx *= 0.8;
+      a.animFrame = 0;
+    }
+
+    // Önünde engel varsa veya uçurum varsa zıpla
+    let checkAheadX = a.x + (a.dir > 0 ? a.w + 4 : -4);
+    let atx = Math.floor(checkAheadX / TILE_SIZE);
+    let aty = Math.floor((a.y + a.h - 2) / TILE_SIZE);
+    if (atx >= 0 && atx < MAP_W && aty >= 0 && aty < MAP_H) {
+      if (isSolidBlock(checkAheadX, a.y + a.h - 4)) {
+        // Önünde blok var, zıplamaya çalış
+        let aboveY = Math.floor((a.y + a.h - TILE_SIZE - 2) / TILE_SIZE);
+        if (aboveY >= 0 && !isSolidBlock(checkAheadX, aboveY * TILE_SIZE)) {
+          a.vy = -5.5;
+        } else {
+          a.dir *= -1; // Engel çıkılamazsa yön değiştir
+        }
+      }
+    }
+
+    a.x += a.vx;
+    let btx = Math.floor((a.x + a.w/2) / TILE_SIZE);
+    let bty = Math.floor((a.y + a.h) / TILE_SIZE);
+    if (btx >= 0 && btx < MAP_W && bty >= 0 && bty < MAP_H && isSolidBlock(a.x, a.y + a.h)) {
+      a.y = bty * TILE_SIZE - a.h;
       a.vy = 0;
     }
   });
 
+  // Zombilerin Akıllı AI Hareketi
   zombies.forEach(z => {
+    if (z.hitFlashTimer > 0) z.hitFlashTimer--;
     z.vy += 0.42;
+    z.actionTimer++;
+
     let distToPlayer = Math.hypot(player.x - z.x, player.y - z.y);
-    if (distToPlayer < 250) {
+    if (distToPlayer < 300) {
       z.facing = player.x > z.x ? 1 : -1;
-      z.vx = z.facing * 1.2;
+      z.vx = z.facing * 1.3;
+      z.animFrame += 0.2;
     } else {
-      if (Math.random() < 0.02) z.facing *= -1;
+      if (z.actionTimer > 100) {
+        z.actionTimer = 0;
+        if (Math.random() < 0.5) z.facing *= -1;
+      }
       z.vx = z.facing * 0.6;
+      z.animFrame += 0.1;
+    }
+
+    // Zombinin önüne duvar çıkarsa zıpla
+    let checkAheadX = z.x + (z.facing > 0 ? z.w + 4 : -4);
+    let atx = Math.floor(checkAheadX / TILE_SIZE);
+    let aty = Math.floor((z.y + z.h - 2) / TILE_SIZE);
+    if (atx >= 0 && atx < MAP_W && aty >= 0 && aty < MAP_H) {
+      if (isSolidBlock(checkAheadX, z.y + z.h - 4)) {
+        z.vy = -5.5;
+      }
     }
 
     z.x += z.vx;
@@ -1126,7 +1226,7 @@ function updatePhysics() {
 
     let hitBoxOverlap = (player.x < z.x + z.w && player.x + player.w > z.x && player.y < z.y + z.h && player.y + player.h > z.y);
     if (hitBoxOverlap && totalGameTicks % 60 === 0) {
-      player.health -= 50;
+      player.health -= 20;
       if (player.health <= 0) {
         handlePlayerDeath();
       }
@@ -1186,12 +1286,31 @@ function renderToolGraphic(info, x, y, size, targetCtx) {
   targetCtx.restore();
 }
 
+function renderWeaponGraphic(info, x, y, size, targetCtx) {
+  targetCtx.save();
+  targetCtx.translate(x + size / 2, y + size / 2);
+  targetCtx.rotate(Math.PI / 4);
+
+  targetCtx.fillStyle = "#78350f";
+  targetCtx.fillRect(-2, 2, 4, 8); // Kabza
+  targetCtx.fillStyle = "#475569";
+  targetCtx.fillRect(-6, 2, 12, 3); // Siperlik
+  targetCtx.fillStyle = info.color;
+  targetCtx.fillRect(-2, -size / 2, 4, size / 1.6); // Kılıç ucu
+  targetCtx.restore();
+}
+
 function renderTile(id, x, y, size, targetCtx) {
   if (!id || id === 0) return;
   const info = ITEM_TYPES[id];
   
   if (info.isTool) {
     renderToolGraphic(info, x, y, size, targetCtx);
+    return;
+  }
+
+  if (info.isWeapon) {
+    renderWeaponGraphic(info, x, y, size, targetCtx);
     return;
   }
 
@@ -1332,41 +1451,43 @@ function renderPlayerTerraria(screenX, screenY) {
 function renderZombie(z, drawCamX, drawCamY) {
   let zx = z.x - drawCamX;
   let zy = z.y - drawCamY;
+  let anim = Math.sin(z.animFrame) * 3;
   ctx.save();
-  ctx.fillStyle = "#166534"; 
-  ctx.fillRect(zx, zy + 12, 18, 30);
-  ctx.fillStyle = "#14532d";
-  ctx.fillRect(zx + 2, zy, 14, 14);
+  ctx.fillStyle = z.hitFlashTimer > 0 ? "#ef4444" : "#166534"; 
+  ctx.fillRect(zx, zy + 12 + anim, 18, 30);
+  ctx.fillStyle = z.hitFlashTimer > 0 ? "#f87171" : "#14532d";
+  ctx.fillRect(zx + 2, zy + anim, 14, 14);
   ctx.fillStyle = "#ef4444"; 
-  ctx.fillRect(zx + 3, zy + 4, 3, 3);
-  ctx.fillRect(zx + 9, zy + 4, 3, 3);
+  ctx.fillRect(zx + 3, zy + 4 + anim, 3, 3);
+  ctx.fillRect(zx + 9, zy + 4 + anim, 3, 3);
   ctx.restore();
 }
 
 function renderAnimal(a, drawCamX, drawCamY) {
   let ax = a.x - drawCamX;
   let ay = a.y - drawCamY;
+  let anim = Math.sin(a.animFrame) * 2;
   ctx.save();
   if (a.type === 'cow') {
-    ctx.fillStyle = "#e2e8f0";
-    ctx.fillRect(ax, ay + 6, a.w, a.h - 8);
+    ctx.fillStyle = a.hitFlashTimer > 0 ? "#ef4444" : "#e2e8f0";
+    ctx.fillRect(ax, ay + 6 + anim, a.w, a.h - 8);
     ctx.fillStyle = "#0f172a";
-    ctx.fillRect(ax + 4, ay + 8, 8, 8);
-    ctx.fillRect(ax + 15, ay + 12, 7, 6);
-    ctx.fillStyle = "#e2e8f0";
-    ctx.fillRect(ax + a.w - 6, ay + 2, 10, 10);
+    ctx.fillRect(ax + 4, ay + 8 + anim, 8, 8);
+    ctx.fillRect(ax + 15, ay + 12 + anim, 7, 6);
+    ctx.fillStyle = a.hitFlashTimer > 0 ? "#ef4444" : "#e2e8f0";
+    ctx.fillRect(ax + a.w - 6, ay + 2 + anim, 10, 10);
     ctx.fillStyle = "#94a3b8";
-    ctx.fillRect(ax + a.w - 3, ay - 2, 3, 4);
+    ctx.fillRect(ax + a.w - 3, ay - 2 + anim, 3, 4);
     ctx.fillStyle = "#334155";
     ctx.fillRect(ax + 3, ay + a.h - 2, 4, 4);
     ctx.fillRect(ax + a.w - 7, ay + a.h - 2, 4, 4);
   } else {
-    ctx.fillStyle = "#f1f5f9";
-    ctx.fillRect(ax - 2, ay + 4, a.w + 4, a.h - 6);
-    ctx.fillStyle = "#cbd5e1";
-    ctx.fillRect(ax, ay + 6, a.w, a.h - 8);
+    ctx.fillStyle = a.hitFlashTimer > 0 ? "#ef4444" : "#f1f5f9";
+    ctx.fillRect(ax - 2, ay + 4 + anim, a.w + 4, a.h - 6);
+    ctx.fillStyle = a.hitFlashTimer > 0 ? "#fca5a5" : "#cbd5e1";
+    ctx.fillRect(ax, ay + 6 + anim, a.w, a.h - 8);
     ctx.fillStyle = "#334155";
-    ctx.fillRect(ax + a.w - 5, ay + 4, 8, 8);
+    ctx.fillRect(ax + a.w - 5, ay + 4 + anim, 8, 8);
     ctx.fillStyle = "#1e293b";
     ctx.fillRect(ax + 4, ay + a.h - 2, 3, 4);
     ctx.fillRect(ax + a.w - 7, ay + a.h - 2, 3, 4);
@@ -1502,7 +1623,7 @@ function renderCanvasHotbarUI() {
     let slot = hotbar[i];
     if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
       renderTile(slot.id, sx + 6, sy + 6, 32, ctx);
-      if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor) {
+      if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor && !ITEM_TYPES[slot.id].isWeapon) {
         ctx.fillStyle = "#fff";
         ctx.font = "bold 10px sans-serif";
         ctx.textAlign = "right";
@@ -1529,7 +1650,7 @@ function buildInventoryUI() {
       c.width = 32; c.height = 32;
       renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
       slotDiv.appendChild(c);
-      if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor) {
+      if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor && !ITEM_TYPES[slot.id].isWeapon) {
         let b = document.createElement("b");
         b.innerText = slot.count;
         slotDiv.appendChild(b);
@@ -1552,7 +1673,7 @@ function buildInventoryUI() {
       c.width = 32; c.height = 32;
       renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
       slotDiv.appendChild(c);
-      if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor) {
+      if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor && !ITEM_TYPES[slot.id].isWeapon) {
         let b = document.createElement("b");
         b.innerText = slot.count;
         slotDiv.appendChild(b);
@@ -1650,12 +1771,19 @@ function buildCraftingTableUI() {
 
     { cat: 'wood', result: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma (3 Ahşap, 2 Çubuk)" },
     { cat: 'wood', result: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta (3 Ahşap, 2 Çubuk)" },
+    { cat: 'wood', result: 50, count: 1, cost: { 8: 2, 9: 1 }, name: "Tahta Kılıç (2 Ahşap, 1 Çubuk)" }, // Minecraft tarifi
+
     { cat: 'utility', result: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma (3 Taş, 2 Çubuk)" },
     { cat: 'utility', result: 24, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Balta (3 Taş, 2 Çubuk)" },
+    { cat: 'utility', result: 51, count: 1, cost: { 3: 2, 9: 1 }, name: "Taş Kılıç (2 Taş, 1 Çubuk)" }, // Minecraft tarifi
+
     { cat: 'copper', result: 12, count: 1, cost: { 40: 3, 9: 2 }, name: "Bakır Kazma (3 Bakır, 2 Çubuk)" },
     { cat: 'copper', result: 25, count: 1, cost: { 40: 3, 9: 2 }, name: "Bakır Balta (3 Bakır, 2 Çubuk)" },
+    // İstediğin gibi Bakır Kılıç yok!
+
     { cat: 'iron', result: 26, count: 1, cost: { 41: 3, 9: 2 }, name: "Demir Kazma (3 Demir, 2 Çubuk)" },
     { cat: 'iron', result: 27, count: 1, cost: { 41: 3, 9: 2 }, name: "Demir Balta (3 Demir, 2 Çubuk)" },
+    { cat: 'iron', result: 52, count: 1, cost: { 41: 2, 9: 1 }, name: "Demir Kılıç (2 Demir, 1 Çubuk)" }, // Minecraft tarifi
     
     { cat: 'copper', result: 17, count: 1, cost: { 40: 5 }, name: "Bakır Kask (5 Bakır)" },
     { cat: 'copper', result: 18, count: 1, cost: { 40: 8 }, name: "Bakır Göğüslük (8 Bakır)" },
