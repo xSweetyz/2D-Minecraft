@@ -184,7 +184,6 @@
       white-space: nowrap;
     }
 
-    /* Envanter İçi Crafting Paneli */
     .quick-craft-panel {
       margin-top: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -211,7 +210,6 @@
     .recipe-card.disabled { opacity: 0.4; cursor: not-allowed; }
     .craft-btn { background: #38bdf8; color: #0f172a; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
 
-    /* Çalışma Masası Modalı */
     #crafting-modal {
       display: none;
       position: absolute;
@@ -250,7 +248,7 @@
     <div class="hud-card">
       <span id="health-display">❤️ 100 / 100</span>
       <span style="opacity: 0.3;">|</span>
-      <span id="time-display">☀️ Gündüz</span>
+      <span id="time-display">☀️ Gündüz (1. Gün)</span>
     </div>
     <div class="controls-hint" id="desktop-hint">
       [A/D] Yürü | [W/Space] Zıpla | [E] Envanter | [1-5] Slot | [Sol Tık] Kır/Salla | [Sağ Tık] Koy / Çalışma Masası Aç
@@ -325,7 +323,7 @@ const ITEM_TYPES = {
   2: { name: "Toprak", solid: true, time: 40, color: "#866043", darkColor: "#573d2a", borderHighlight: "#a37857" },
   3: { name: "Taş", solid: true, time: 140, needTool: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3" },
   4: { name: "Ağaç Gövdesi", solid: true, time: 80, color: "#674627", darkColor: "#3d2815", borderHighlight: "#8a5e36" },
-  5: { name: "Yaprak", solid: true, walkThrough: true, time: 15, color: "#2d8a1e", darkColor: "#1a5710", borderHighlight: "#45b033" }, // Üzerinde yürünebilir yaprak
+  5: { name: "Yaprak", solid: true, walkThrough: true, time: 15, color: "#2d8a1e", darkColor: "#1a5710", borderHighlight: "#45b033" },
   6: { name: "Kömür", solid: true, time: 180, needTool: true, isOre: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#171717" },
   7: { name: "Bakır", solid: true, time: 220, needTool: true, isOre: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#f97316" },
   21: { name: "Demir", solid: true, time: 260, needTool: true, isOre: true, color: "#737373", darkColor: "#404040", borderHighlight: "#a3a3a3", oreColor: "#cbd5e1" },
@@ -343,7 +341,7 @@ const ITEM_TYPES = {
   26: { name: "Demir Kazma", solid: false, isTool: true, toolType: 'pickaxe', tier: 4, speed: 20.0, color: "#cbd5e1" },
   27: { name: "Demir Balta", solid: false, isTool: true, toolType: 'axe', tier: 4, speed: 20.0, color: "#cbd5e1" },
 
-  // Zırhlar (Taş zırhlar kaldırıldı, Bakır ve Demir zırhlar kaldı)
+  // Zırhlar
   17: { name: "Bakır Kask", solid: false, isArmor: true, armorType: 'head', color: "#ea580c" },
   18: { name: "Bakır Göğüslük", solid: false, isArmor: true, armorType: 'chest', color: "#ea580c" },
   19: { name: "Bakır Pantolon", solid: false, isArmor: true, armorType: 'legs', color: "#c2410c" },
@@ -372,9 +370,9 @@ function initWorld() {
         world[y][x] = 2;
       } else {
         let r = Math.random();
-        if (r < 0.05) world[y][x] = 6; // Kömür
-        else if (r < 0.08) world[y][x] = 7; // Bakır
-        else if (r < 0.10) world[y][x] = 21; // Demir
+        if (r < 0.05) world[y][x] = 6;
+        else if (r < 0.08) world[y][x] = 7;
+        else if (r < 0.10) world[y][x] = 21;
         else world[y][x] = 3;
       }
     }
@@ -400,10 +398,24 @@ function initWorld() {
 }
 initWorld();
 
-let timeOfDay = 0;
-function updateTime(amount) {
-  timeOfDay = (timeOfDay + amount) % 1.0;
-  document.getElementById("time-display").innerText = timeOfDay < 0.5 ? "☀️ Gündüz" : "🌙 Gece";
+// 20 Dakikalık Gece/Gündüz Döngüsü (10 dk Gündüz, 10 dk Gece)
+// 60 FPS varsayımıyla: 20 dakika = 20 * 60 * 60 = 72000 frame
+let totalGameTicks = 0;
+let timeOfDay = 0; // 0.0 - 1.0 aralığı
+let currentDay = 1;
+
+function updateDayNightCycle() {
+  totalGameTicks++;
+  // 72000 frame = 1 tam döngü (20 dakika)
+  let cycleProgress = (totalGameTicks % 72000) / 72000;
+  timeOfDay = cycleProgress;
+
+  // Gün sayısını hesapla
+  currentDay = Math.floor(totalGameTicks / 72000) + 1;
+
+  let isDay = timeOfDay < 0.5;
+  let dayText = isDay ? "☀️ Gündüz" : "🌙 Gece";
+  document.getElementById("time-display").innerText = `${dayText} (${currentDay}. Gün)`;
 }
 
 let player = {
@@ -513,7 +525,6 @@ function consumePlayerItem(itemId, amount = 1) {
   updateItemCounts();
 }
 
-// Ağaç gövdesi kırıldığında 1 tane bile odun kalmazsa yaprakların düşmesini tetikleyen fonksiyon
 function checkTreeLeavesDecay(tx, ty) {
   let startX = tx - 3;
   let endX = tx + 3;
@@ -524,19 +535,18 @@ function checkTreeLeavesDecay(tx, ty) {
     for (let x = startX; x <= endX; x++) {
       if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
         if (world[y][x] === 4) {
-          return; // Hâlâ odun var, düşmesin
+          return;
         }
       }
     }
   }
 
-  // Odun kalmadıysa yaprakları düşürmeye başla (havaya dönüştür veya envantere ekle)
   for (let y = startY; y <= endY; y++) {
     for (let x = startX; x <= endX; x++) {
       if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
         if (world[y][x] === 5) {
           world[y][x] = 0;
-          if (Math.random() < 0.2) addPlayerItem(5, 1); // Yaprak düşme şansı
+          if (Math.random() < 0.2) addPlayerItem(5, 1);
         }
       }
     }
@@ -553,8 +563,6 @@ window.addEventListener("keydown", e => {
   if ((k === "w" || k === " ") && player.grounded) {
     player.vy = -6.8; 
     player.grounded = false;
-    timeOfDay = 0.0;
-    updateTime(0);
   }
   if (k === "e") toggleInventoryModal();
 });
@@ -585,11 +593,7 @@ bindTouchButton("btn-action", () => {
   let tx = Math.floor(targetX / TILE_SIZE);
   let ty = Math.floor(targetY / TILE_SIZE);
   
-  if (world[ty]?.[tx] === 22) {
-    toggleCraftingModal();
-    return;
-  }
-
+  // Çalışma masası sağ tık ile açılacak, sol tık ile artık kırılıp envantere alınabilecek.
   if (world[ty]?.[tx] !== 0) {
     let mined = world[ty][tx];
     world[ty][tx] = 0;
@@ -605,24 +609,83 @@ bindTouchButton("btn-action", () => {
   }
 });
 
+// Canvas üzerinde Fare Tıklama İşlemleri (Sol Tık: Kırma, Sağ Tık: Çalışma Masası Açma / Blok Koyma)
+canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+canvas.addEventListener("mousedown", e => {
+  const rect = canvas.getBoundingClientRect();
+  const mouseScreenX = e.clientX - rect.left;
+  const mouseScreenY = e.clientY - rect.top;
+
+  let viewW = canvas.width / ZOOM;
+  let viewH = canvas.height / ZOOM;
+  let drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, camX - viewW / 2));
+  let drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, camY - viewH / 2));
+
+  let worldMouseX = (mouseScreenX / ZOOM) + drawCamX;
+  let worldMouseY = (mouseScreenY / ZOOM) + drawCamY;
+
+  let tx = Math.floor(worldMouseX / TILE_SIZE);
+  let ty = Math.floor(worldMouseY / TILE_SIZE);
+
+  // Mesafe kontrolü (oyuncunun yakını olmalı)
+  let pCenterX = player.x + player.w / 2;
+  let pCenterY = player.y + player.h / 2;
+  let dist = Math.hypot(worldMouseX - pCenterX, worldMouseY - pCenterY);
+
+  if (dist > TILE_SIZE * 5) return; // Çok uzaktaysa işlem yapma
+
+  if (e.button === 2) {
+    // Sağ Tık: Çalışma masası ise aç, değilse blok koy
+    if (world[ty]?.[tx] === 22) {
+      toggleCraftingModal();
+      return;
+    }
+
+    // Blok koyma
+    if (world[ty]?.[tx] === 0) {
+      let activeSlot = hotbar[player.selectedSlot];
+      let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
+      if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor) {
+        world[ty][tx] = activeItem;
+        consumePlayerItem(activeItem, 1);
+      }
+    }
+  } else if (e.button === 0) {
+    // Sol Tık: Kazma / Kırma işlemi başlat
+    if (world[ty]?.[tx] !== 0) {
+      mining.active = true;
+      mining.x = tx;
+      mining.y = ty;
+      mining.progress = 0;
+    }
+  }
+});
+
+window.addEventListener("mouseup", e => {
+  if (e.button === 0) {
+    mining.active = false;
+  }
+});
+
 function isSolidBlock(px, py) {
   let tx = Math.floor(px / TILE_SIZE);
   let ty = Math.floor(py / TILE_SIZE);
   if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return true;
   let blockId = world[ty][tx];
-  if (blockId === 5) return false; // Yapraklar üzerinde yürünebilir (çarpışma yok)
+  if (blockId === 5) return false;
   return ITEM_TYPES[blockId].solid;
 }
 
 function updatePhysics() {
+  updateDayNightCycle();
+
   if (keys["a"] || keys["arrowleft"]) {
     player.vx -= player.accX;
     player.facing = -1;
-    updateTime(0.0005);
   } else if (keys["d"] || keys["arrowright"]) {
     player.vx += player.accX;
     player.facing = 1;
-    updateTime(0.0005);
   } else {
     player.vx *= player.friction;
   }
@@ -833,6 +896,7 @@ function render() {
   let drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, camX - viewW / 2));
   let drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, camY - viewH / 2));
 
+  // Gökyüzü rengini zaman döngüsüne göre dinamik geçişli yapalım
   let skyGrad = ctx.createLinearGradient(0, 0, 0, viewH);
   if (timeOfDay < 0.5) {
     skyGrad.addColorStop(0, "#0284c7");
@@ -989,208 +1053,190 @@ function buildInventoryCraftingUI() {
   updateItemCounts();
   const list = document.getElementById("inventory-recipe-list");
   list.innerHTML = "";
-  inventoryRecipes.forEach(r => {
-    let canCraft = Object.keys(r.cost).every(k => (itemCounts[k] || 0) >= r.cost[k]);
-    let card = document.createElement("div");
-    card.className = "recipe-card" + (canCraft ? "" : " disabled");
-    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">${canCraft ? "ÜRET" : "Eksik"}</span>`;
-    card.onclick = () => {
-      if (canCraft) {
-        Object.keys(r.cost).forEach(k => consumePlayerItem(parseInt(k), r.cost[k]));
-        addPlayerItem(r.item, r.count);
-        buildInventoryUI();
+  
+  const recipes = [
+    { result: 8, count: 4, cost: { 4: 1 }, name: "4x Ahşap Blok (Odun)" },
+    { result: 9, count: 4, cost: { 8: 1 }, name: "4x Çubuk (Ahşap Blok)" },
+    { result: 22, count: 1, cost: { 8: 10 }, name: "Çalışma Masası (10x Ahşap Blok)" },
+    { result: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma (3 Ahşap, 2 Çubuk)" },
+    { result: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta (3 Ahşap, 2 Çubuk)" }
+  ];
+
+  recipes.forEach(r => {
+    let canCraft = true;
+    for (let itemId in r.cost) {
+      if ((itemCounts[itemId] || 0) < r.cost[itemId]) {
+        canCraft = false;
+        break;
       }
-    };
+    }
+
+    let card = document.createElement("div");
+    card.className = `recipe-card ${canCraft ? '' : 'disabled'}`;
+    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">Üret</span>`;
+    
+    if (canCraft) {
+      card.onclick = () => {
+        for (let itemId in r.cost) {
+          consumePlayerItem(parseInt(itemId), r.cost[itemId]);
+        }
+        addPlayerItem(r.result, r.count);
+        buildInventoryUI();
+      };
+    }
     list.appendChild(card);
   });
 }
 
-function buildCraftingUI() {
+function buildCraftingTableUI() {
   updateItemCounts();
   const list = document.getElementById("crafting-recipe-list");
   list.innerHTML = "";
-  craftingTableRecipes.forEach(r => {
-    let canCraft = Object.keys(r.cost).every(k => (itemCounts[k] || 0) >= r.cost[k]);
-    let card = document.createElement("div");
-    card.className = "recipe-card" + (canCraft ? "" : " disabled");
-    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">${canCraft ? "ÜRET" : "Eksik"}</span>`;
-    card.onclick = () => {
-      if (canCraft) {
-        Object.keys(r.cost).forEach(k => consumePlayerItem(parseInt(k), r.cost[k]));
-        addPlayerItem(r.item, r.count);
-        buildCraftingUI();
+
+  const recipes = [
+    { result: 11, count: 1, cost: { 3: 10, 9: 2 }, name: "Taş Kazma (10 Taş, 2 Çubuk)" },
+    { result: 24, count: 1, cost: { 3: 10, 9: 2 }, name: "Taş Balta (10 Taş, 2 Çubuk)" },
+    { result: 12, count: 1, cost: { 7: 10, 9: 2 }, name: "Bakır Kazma (10 Bakır, 2 Çubuk)" },
+    { result: 25, count: 1, cost: { 7: 10, 9: 2 }, name: "Bakır Balta (10 Bakır, 2 Çubuk)" },
+    { result: 26, count: 1, cost: { 21: 10, 9: 2 }, name: "Demir Kazma (10 Demir, 2 Çubuk)" },
+    { result: 27, count: 1, cost: { 21: 10, 9: 2 }, name: "Demir Balta (10 Demir, 2 Çubuk)" },
+    
+    { result: 17, count: 1, cost: { 7: 15 }, name: "Bakır Kask (15 Bakır)" },
+    { result: 18, count: 1, cost: { 7: 25 }, name: "Bakır Göğüslük (25 Bakır)" },
+    { result: 19, count: 1, cost: { 7: 20 }, name: "Bakır Pantolon (20 Bakır)" },
+    { result: 20, count: 1, cost: { 7: 12 }, name: "Bakır Bot (12 Bakır)" },
+
+    { result: 28, count: 1, cost: { 21: 15 }, name: "Demir Kask (15 Demir)" },
+    { result: 29, count: 1, cost: { 21: 25 }, name: "Demir Göğüslük (25 Demir)" },
+    { result: 30, count: 1, cost: { 21: 20 }, name: "Demir Pantolon (20 Demir)" },
+    { result: 31, count: 1, cost: { 21: 12 }, name: "Demir Bot (12 Demir)" }
+  ];
+
+  recipes.forEach(r => {
+    let canCraft = true;
+    for (let itemId in r.cost) {
+      if ((itemCounts[itemId] || 0) < r.cost[itemId]) {
+        canCraft = false;
+        break;
       }
-    };
+    }
+
+    let card = document.createElement("div");
+    card.className = `recipe-card ${canCraft ? '' : 'disabled'}`;
+    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">Üret</span>`;
+    
+    if (canCraft) {
+      card.onclick = () => {
+        for (let itemId in r.cost) {
+          consumePlayerItem(parseInt(itemId), r.cost[itemId]);
+        }
+        addPlayerItem(r.result, r.count);
+        buildCraftingTableUI();
+      };
+    }
     list.appendChild(card);
   });
 }
 
-const tooltip = document.getElementById("tooltip");
-function setupTooltipEvents(elem) {
-  elem.onmousemove = (e) => {
-    let name = elem.dataset.itemName;
+function setupTooltipEvents(el) {
+  const tooltip = document.getElementById("tooltip");
+  el.addEventListener("mouseenter", (e) => {
+    let name = el.dataset.itemName;
     if (name) {
       tooltip.innerText = name;
       tooltip.style.display = "block";
-      tooltip.style.left = (e.clientX + 10) + "px";
-      tooltip.style.top = (e.clientY + 10) + "px";
     }
-  };
-  elem.onmouseleave = () => tooltip.style.display = "none";
+  });
+  el.addEventListener("mousemove", (e) => {
+    tooltip.style.left = (e.clientX + 10) + "px";
+    tooltip.style.top = (e.clientY + 15) + "px";
+  });
+  el.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+  });
 }
 
-function setupDragAndDropEvents(elem, type, index) {
-  elem.draggable = true;
-  elem.ondragstart = () => {
-    draggedItemInfo = { type, index };
-    tooltip.style.display = "none";
-  };
-  elem.ondragover = (e) => e.preventDefault();
-  elem.ondrop = (e) => {
+function setupDragAndDropEvents(el, type, index) {
+  el.draggable = true;
+  el.addEventListener("dragstart", (e) => {
+    draggedItemInfo = { source: type, index: index };
+  });
+  el.addEventListener("dragover", (e) => e.preventDefault());
+  el.addEventListener("drop", (e) => {
     e.preventDefault();
     if (!draggedItemInfo) return;
-    let srcType = draggedItemInfo.type;
-    let srcIdx = draggedItemInfo.index;
-
-    let sourceSlot = srcType === 'hotbar' ? hotbar[srcIdx] : (srcType === 'storage' ? storage[srcIdx] : equippedArmor[srcType]);
+    
+    let sourceSlot = draggedItemInfo.source === 'hotbar' ? hotbar[draggedItemInfo.index] : storage[draggedItemInfo.index];
     let targetSlot = type === 'hotbar' ? hotbar[index] : storage[index];
 
-    let temp = { id: sourceSlot.id, count: sourceSlot.count };
-    sourceSlot.id = targetSlot.id;
-    sourceSlot.count = targetSlot.count;
-    targetSlot.id = temp.id;
-    targetSlot.count = temp.count;
+    let tempId = targetSlot.id;
+    let tempCount = targetSlot.count;
+
+    targetSlot.id = sourceSlot.id;
+    targetSlot.count = sourceSlot.count;
+
+    sourceSlot.id = tempId;
+    sourceSlot.count = tempCount;
 
     draggedItemInfo = null;
     buildInventoryUI();
-  };
+  });
 }
 
-function setupArmorDragAndDropEvents(elem, armorType) {
-  elem.draggable = true;
-  elem.ondragstart = () => {
-    draggedItemInfo = { type: armorType, index: 0 };
-    tooltip.style.display = "none";
-  };
-  elem.ondragover = (e) => e.preventDefault();
-  elem.ondrop = (e) => {
+function setupArmorDragAndDropEvents(el, armorType) {
+  el.addEventListener("dragover", (e) => e.preventDefault());
+  el.addEventListener("drop", (e) => {
     e.preventDefault();
     if (!draggedItemInfo) return;
-    let srcType = draggedItemInfo.type;
-    let srcIdx = draggedItemInfo.index;
 
-    let sourceSlot = srcType === 'hotbar' ? hotbar[srcIdx] : (srcType === 'storage' ? storage[srcIdx] : equippedArmor[srcType]);
-    let targetSlot = equippedArmor[armorType];
+    let sourceSlot = draggedItemInfo.source === 'hotbar' ? hotbar[draggedItemInfo.index] : storage[draggedItemInfo.index];
+    if (sourceSlot.id && ITEM_TYPES[sourceSlot.id]?.isArmor) {
+      if (ITEM_TYPES[sourceSlot.id].armorType === armorType) {
+        let currentArmor = equippedArmor[armorType];
+        
+        let tempId = currentArmor.id;
+        let tempCount = currentArmor.count;
 
-    if (sourceSlot.id !== 0 && ITEM_TYPES[sourceSlot.id].armorType === armorType) {
-      let temp = { id: sourceSlot.id, count: sourceSlot.count };
-      sourceSlot.id = targetSlot.id;
-      sourceSlot.count = targetSlot.count;
-      targetSlot.id = temp.id;
-      targetSlot.count = temp.count;
-    } else if (sourceSlot.id === 0) {
-      targetSlot.id = 0;
-      targetSlot.count = 0;
+        currentArmor.id = sourceSlot.id;
+        currentArmor.count = sourceSlot.count;
+
+        sourceSlot.id = tempId;
+        sourceSlot.count = tempCount;
+
+        draggedItemInfo = null;
+        buildInventoryUI();
+      }
     }
-
-    draggedItemInfo = null;
-    buildInventoryUI();
-  };
+  });
 }
 
-// Envanterden yapılabilen temel üretimler
-const inventoryRecipes = [
-  { item: 8, count: 4, cost: { 4: 1 }, name: "Ahşap Blok (4x)" },
-  { item: 9, count: 4, cost: { 8: 2 }, name: "Ahşap Çubuk (4x)" },
-  { item: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası" },
-  { item: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma" },
-  { item: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta" }
-];
-
-// Çalışma masası ile yapılabilen gelişmiş üretimler (Taş zırhlar kaldırıldı)
-const craftingTableRecipes = [
-  { item: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma" },
-  { item: 24, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Balta" },
-  { item: 12, count: 1, cost: { 7: 3, 9: 2 }, name: "Bakır Kazma" },
-  { item: 25, count: 1, cost: { 7: 3, 9: 2 }, name: "Bakır Balta" },
-  { item: 26, count: 1, cost: { 21: 3, 9: 2 }, name: "Demir Kazma" },
-  { item: 27, count: 1, cost: { 21: 3, 9: 2 }, name: "Demir Balta" },
-  { item: 17, count: 1, cost: { 7: 5 }, name: "Bakır Kask" },
-  { item: 18, count: 1, cost: { 7: 8 }, name: "Bakır Göğüslük" },
-  { item: 19, count: 1, cost: { 7: 6 }, name: "Bakır Pantolon" },
-  { item: 20, count: 1, cost: { 7: 4 }, name: "Bakır Bot" },
-  { item: 28, count: 1, cost: { 21: 5 }, name: "Demir Kask" },
-  { item: 29, count: 1, cost: { 21: 8 }, name: "Demir Göğüslük" },
-  { item: 30, count: 1, cost: { 21: 6 }, name: "Demir Pantolon" },
-  { item: 31, count: 1, cost: { 21: 4 }, name: "Demir Bot" }
-];
-
 function toggleInventoryModal() {
-  const modal = document.getElementById("inventory-modal");
-  const isVisible = modal.style.display === "block";
-  modal.style.display = isVisible ? "none" : "block";
-  if (!isVisible) buildInventoryUI();
-  else tooltip.style.display = "none";
+  let modal = document.getElementById("inventory-modal");
+  if (modal.style.display === "block") {
+    modal.style.display = "none";
+  } else {
+    modal.style.display = "block";
+    buildInventoryUI();
+  }
 }
 
 function toggleCraftingModal() {
-  const modal = document.getElementById("crafting-modal");
-  const isVisible = modal.style.display === "block";
-  modal.style.display = isVisible ? "none" : "block";
-  if (!isVisible) buildCraftingUI();
+  let modal = document.getElementById("crafting-modal");
+  if (modal.style.display === "block") {
+    modal.style.display = "none";
+  } else {
+    modal.style.display = "block";
+    buildCraftingTableUI();
+  }
 }
 
-canvas.onmousedown = e => {
-  let viewW = canvas.width / ZOOM;
-  let viewH = canvas.height / ZOOM;
-  let drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, camX - viewW / 2));
-  let drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, camY - viewH / 2));
-
-  let clickX = (e.clientX / ZOOM) + drawCamX;
-  let clickY = (e.clientY / ZOOM) + drawCamY;
-
-  let tx = Math.floor(clickX / TILE_SIZE);
-  let ty = Math.floor(clickY / TILE_SIZE);
-
-  let dist = Math.hypot(tx * TILE_SIZE - player.x, ty * TILE_SIZE - player.y);
-  if (dist > TILE_SIZE * 8) return;
-
-  if (e.button === 0 && world[ty]?.[tx] !== 0) {
-    if (world[ty][tx] === 22) {
-      toggleCraftingModal();
-      return;
-    }
-    mining.active = true;
-    mining.x = tx;
-    mining.y = ty;
-    mining.progress = 0;
-  } else if (e.button === 2 && world[ty]?.[tx] === 0) {
-    let activeSlot = hotbar[player.selectedSlot];
-    let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
-    if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor) {
-      let pGridX = Math.floor((player.x + player.w / 2) / TILE_SIZE);
-      let pGridY = Math.floor((player.y + player.h / 2) / TILE_SIZE);
-      if (!(tx === pGridX && (ty === pGridY || ty === pGridY - 1))) {
-        world[ty][tx] = activeItem;
-        consumePlayerItem(activeItem, 1);
-      }
-    }
-  }
-};
-
-window.addEventListener("mouseup", () => {
-  mining.active = false;
-  mining.progress = 0;
-});
-
-window.addEventListener("contextmenu", e => e.preventDefault());
-
-function loop() {
+function gameLoop() {
   updatePhysics();
   render();
-  requestAnimationFrame(loop);
+  requestAnimationFrame(gameLoop);
 }
-loop();
+
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
