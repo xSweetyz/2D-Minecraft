@@ -237,6 +237,31 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 5px;
     }
+
+    #furnace-modal {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(12px);
+      border: 2px solid #ea580c;
+      border-radius: 12px;
+      padding: 15px;
+      width: 90%;
+      max-width: 350px;
+      z-index: 26;
+      color: #fff;
+    }
+    #furnace-modal h2 {
+      font-size: 15px;
+      color: #ea580c;
+      margin-bottom: 10px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 5px;
+    }
   </style>
 </head>
 <body>
@@ -248,10 +273,12 @@
     <div class="hud-card">
       <span id="health-display">❤️ 100 / 100</span>
       <span style="opacity: 0.3;">|</span>
+      <span id="hunger-display">🍗 20 / 20</span>
+      <span style="opacity: 0.3;">|</span>
       <span id="time-display">☀️ Gündüz (1. Gün)</span>
     </div>
     <div class="controls-hint" id="desktop-hint">
-      [A/D] Yürü | [W/Space] Zıpla | [E] Envanter | [1-5] Slot | [Sol Tık] Kır/Salla | [Sağ Tık] Koy / Çalışma Masası Aç
+      [A/D] Yürü | [W/Space] Zıpla | [E] Envanter | [1-5] Slot | [Sol Tık] Kır/Salla | [Sağ Tık] Koy / Çalışma/Yatak/Fırın | [Sağ Tık (Yemek)] Ye
     </div>
   </div>
 
@@ -297,6 +324,13 @@
     <button style="margin-top: 10px; width: 100%; padding: 6px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-weight: bold; cursor: pointer;" onclick="toggleCraftingModal()">Kapat</button>
   </div>
 
+  <div id="furnace-modal">
+    <h2>FIRIN (YEMEK PİŞİRME & ERİTME)</h2>
+    <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">Çiğ etleri pişir veya madenleri erit! Kömür yakıt olarak kullanılır.</div>
+    <div class="recipe-list" id="furnace-recipe-list"></div>
+    <button style="margin-top: 10px; width: 100%; padding: 6px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-weight: bold; cursor: pointer;" onclick="toggleFurnaceModal()">Kapat</button>
+  </div>
+
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -314,8 +348,8 @@ resize();
 
 const TILE_SIZE = 32;
 const ZOOM = 1.65; 
-const MAP_W = 200;
-const MAP_H = 120;
+const MAP_W = 400; // Genişletilmiş Harita
+const MAP_H = 160; // Genişletilmiş Harita Yüksekliği
 
 const ITEM_TYPES = {
   0: { name: "Hava", solid: false },
@@ -330,6 +364,17 @@ const ITEM_TYPES = {
   8: { name: "Ahşap Blok", solid: true, time: 60, color: "#a16207", darkColor: "#713f12", borderHighlight: "#ca8a04" },
   9: { name: "Çubuk", solid: false, isItem: true, color: "#78350f" },
   22: { name: "Çalışma Masası", solid: true, time: 70, isCraftingTable: true, color: "#b45309", darkColor: "#78350f", borderHighlight: "#d97706" },
+  32: { name: "Yatak", solid: true, time: 60, isBed: true, color: "#ef4444", darkColor: "#991b1b", borderHighlight: "#f87171" },
+  33: { name: "Fırın", solid: true, time: 90, isFurnace: true, color: "#475569", darkColor: "#1e293b", borderHighlight: "#64748b" },
+
+  // Yiyecekler
+  34: { name: "Çiğ İnek Eti", solid: false, isFood: true, foodValue: 1, color: "#b91c1c" },
+  35: { name: "Pişmiş İnek Eti", solid: false, isFood: true, foodValue: 3, color: "#7f1d1d" },
+  36: { name: "Çiğ Koyun Eti", solid: false, isFood: true, foodValue: 1, color: "#fca5a5" },
+  37: { name: "Pişmiş Koyun Eti", solid: false, isFood: true, foodValue: 3, color: "#991b1b" },
+
+  // Bedrock
+  38: { name: "Katman Kayası (Bedrock)", solid: true, unbreakable: true, color: "#171717", darkColor: "#0a0a0a", borderHighlight: "#262626" },
 
   // Aletler
   10: { name: "Tahta Kazma", solid: false, isTool: true, toolType: 'pickaxe', tier: 1, speed: 4.0, color: "#d97706" },
@@ -354,19 +399,23 @@ const ITEM_TYPES = {
 };
 
 let world = [];
-let surfaceY = 40;
+let surfaceY = 45;
 
 function initWorld() {
   world = [];
   for (let y = 0; y < MAP_H; y++) {
     world[y] = [];
     for (let x = 0; x < MAP_W; x++) {
-      let curSurface = surfaceY + Math.floor(Math.sin(x * 0.08) * 5 + Math.cos(x * 0.04) * 3);
+      if (y === MAP_H - 1) {
+        world[y][x] = 38; // Bedrock
+        continue;
+      }
+      let curSurface = surfaceY + Math.floor(Math.sin(x * 0.05) * 8 + Math.cos(x * 0.02) * 5);
       if (y < curSurface) {
         world[y][x] = 0;
       } else if (y === curSurface) {
         world[y][x] = 1;
-      } else if (y < curSurface + 10) {
+      } else if (y < curSurface + 12) {
         world[y][x] = 2;
       } else {
         let r = Math.random();
@@ -378,9 +427,9 @@ function initWorld() {
     }
   }
 
-  for (let x = 8; x < MAP_W - 8; x += Math.floor(Math.random() * 5) + 5) {
+  for (let x = 10; x < MAP_W - 10; x += Math.floor(Math.random() * 6) + 6) {
     if (Math.random() > 0.3) {
-      let curSurface = surfaceY + Math.floor(Math.sin(x * 0.08) * 5 + Math.cos(x * 0.04) * 3);
+      let curSurface = surfaceY + Math.floor(Math.sin(x * 0.05) * 8 + Math.cos(x * 0.02) * 5);
       let treeH = Math.floor(Math.random() * 3) + 4;
       for (let h = 1; h <= treeH; h++) {
         if (curSurface - h >= 0) world[curSurface - h][x] = 4;
@@ -401,17 +450,8 @@ initWorld();
 let totalGameTicks = 0;
 let timeOfDay = 0; 
 let currentDay = 1;
-
-function updateDayNightCycle() {
-  totalGameTicks++;
-  let cycleProgress = (totalGameTicks % 72000) / 72000;
-  timeOfDay = cycleProgress;
-  currentDay = Math.floor(totalGameTicks / 72000) + 1;
-
-  let isDay = timeOfDay < 0.5;
-  let dayText = isDay ? "☀️ Gündüz" : "🌙 Gece";
-  document.getElementById("time-display").innerText = `${dayText} (${currentDay}. Gün)`;
-}
+let spawnBedX = -1;
+let spawnBedY = -1;
 
 let player = {
   x: 20 * TILE_SIZE,
@@ -426,8 +466,82 @@ let player = {
   grounded: false,
   facing: 1,
   selectedSlot: 0,
-  animFrame: 0
+  animFrame: 0,
+  health: 100,
+  maxHealth: 100,
+  hunger: 20,
+  maxHunger: 20
 };
+
+let zombies = [];
+let animals = []; // İnek ve koyunlar
+
+function spawnEntities() {
+  animals = [];
+  for (let i = 0; i < 15; i++) {
+    let ax = Math.floor(Math.random() * (MAP_W - 40)) + 20;
+    let ay = 0;
+    for (let y = 0; y < MAP_H; y++) {
+      if (world[y][ax] === 1) { ay = y - 1; break; }
+    }
+    animals.push({
+      x: ax * TILE_SIZE,
+      y: ay * TILE_SIZE,
+      w: 24,
+      h: 20,
+      type: Math.random() < 0.5 ? 'cow' : 'sheep',
+      vx: 0,
+      vy: 0,
+      hp: 10,
+      dir: Math.random() < 0.5 ? 1 : -1,
+      timer: 0
+    });
+  }
+}
+spawnEntities();
+
+function updateDayNightCycle() {
+  totalGameTicks++;
+  let cycleProgress = (totalGameTicks % 72000) / 72000;
+  timeOfDay = cycleProgress;
+  currentDay = Math.floor(totalGameTicks / 72000) + 1;
+
+  let isDay = timeOfDay < 0.5;
+  let dayText = isDay ? "☀️ Gündüz" : "🌙 Gece";
+  document.getElementById("time-display").innerText = `${dayText} (${currentDay}. Gün)`;
+
+  // Can yenilenmesi: Her 2 saniyede (120 tick) 1 kalp (10 HP), açlık 4'ün üstündeyse
+  if (totalGameTicks % 120 === 0 && player.hunger >= 4 && player.health < player.maxHealth) {
+    player.health = Math.min(player.maxHealth, player.health + 10);
+  }
+
+  // Gece olunca uyulmadıysa zombi doğurma (çok fazla olmayacak şekilde)
+  if (!isDay && zombies.length < 3 && Math.random() < 0.005) {
+    let zx = player.x + (Math.random() < 0.5 ? -400 : 400);
+    let ztx = Math.floor(zx / TILE_SIZE);
+    if (ztx > 0 && ztx < MAP_W) {
+      for (let y = 0; y < MAP_H; y++) {
+        if (world[y][ztx] === 1) {
+          zombies.push({
+            x: ztx * TILE_SIZE,
+            y: (y - 1) * TILE_SIZE,
+            w: 18,
+            h: 42,
+            vx: 0,
+            vy: 0,
+            hp: 2, // 2 balta/darbe
+            facing: 1
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  if (isDay) {
+    zombies = []; // Gündüz olunca zombiler yok olur
+  }
+}
 
 let camX = player.x;
 let camY = player.y;
@@ -520,6 +634,24 @@ function consumePlayerItem(itemId, amount = 1) {
   updateItemCounts();
 }
 
+function respawnPlayer() {
+  player.health = player.maxHealth;
+  player.hunger = player.maxHunger;
+  // Ölünce eşyalar gider (boş envanter)
+  for (let i = 0; i < hotbar.length; i++) { hotbar[i].id = 0; hotbar[i].count = 0; }
+  for (let i = 0; i < storage.length; i++) { storage[i].id = 0; storage[i].count = 0; }
+  for (let k in equippedArmor) { equippedArmor[k].id = 0; equippedArmor[k].count = 0; }
+  updateItemCounts();
+
+  if (spawnBedX !== -1 && spawnBedY !== -1) {
+    player.x = spawnBedX * TILE_SIZE;
+    player.y = (spawnBedY - 1) * TILE_SIZE;
+  } else {
+    player.x = 20 * TILE_SIZE;
+    player.y = (surfaceY - 4) * TILE_SIZE;
+  }
+}
+
 function checkTreeLeavesDecay(tx, ty) {
   let startX = tx - 3;
   let endX = tx + 3;
@@ -529,9 +661,7 @@ function checkTreeLeavesDecay(tx, ty) {
   for (let y = startY; y <= endY; y++) {
     for (let x = startX; x <= endX; x++) {
       if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
-        if (world[y][x] === 4) {
-          return;
-        }
+        if (world[y][x] === 4) return;
       }
     }
   }
@@ -588,7 +718,7 @@ bindTouchButton("btn-action", () => {
   let tx = Math.floor(targetX / TILE_SIZE);
   let ty = Math.floor(targetY / TILE_SIZE);
   
-  if (world[ty]?.[tx] !== 0) {
+  if (world[ty]?.[tx] !== 0 && world[ty]?.[tx] !== 38) {
     let mined = world[ty][tx];
     world[ty][tx] = 0;
     addPlayerItem(mined, 1);
@@ -596,7 +726,7 @@ bindTouchButton("btn-action", () => {
   } else {
     let activeSlot = hotbar[player.selectedSlot];
     let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
-    if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor) {
+    if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor && !ITEM_TYPES[activeItem].isFood) {
       world[ty][tx] = activeItem;
       consumePlayerItem(activeItem, 1);
     }
@@ -628,21 +758,75 @@ canvas.addEventListener("mousedown", e => {
   if (dist > TILE_SIZE * 5) return;
 
   if (e.button === 2) {
-    if (world[ty]?.[tx] === 22) {
+    let clickedBlock = world[ty]?.[tx];
+    if (clickedBlock === 22) {
       toggleCraftingModal();
       return;
     }
-
-    if (world[ty]?.[tx] === 0) {
-      let activeSlot = hotbar[player.selectedSlot];
-      let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
-      if (activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor) {
-        world[ty][tx] = activeItem;
-        consumePlayerItem(activeItem, 1);
+    if (clickedBlock === 33) {
+      toggleFurnaceModal();
+      return;
+    }
+    if (clickedBlock === 32) {
+      // Yatağa yatma / Geceyi atlama
+      if (timeOfDay >= 0.5) {
+        totalGameTicks += 36000; // Gündüze sar
+        alert("Sabah oldu! Uyandın.");
+      } else {
+        alert("Sadece geceleri uyuyabilirsin.");
       }
+      return;
+    }
+
+    let activeSlot = hotbar[player.selectedSlot];
+    let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
+
+    // Yemek yeme (sağ tık)
+    if (activeItem && ITEM_TYPES[activeItem].isFood) {
+      player.hunger = Math.min(player.maxHunger, player.hunger + ITEM_TYPES[activeItem].foodValue * 2);
+      consumePlayerItem(activeItem, 1);
+      return;
+    }
+
+    if (clickedBlock === 0 && activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor && !ITEM_TYPES[activeItem].isFood) {
+      world[ty][tx] = activeItem;
+      if (activeItem === 32) {
+        spawnBedX = tx;
+        spawnBedY = ty;
+      }
+      consumePlayerItem(activeItem, 1);
     }
   } else if (e.button === 0) {
-    if (world[ty]?.[tx] !== 0) {
+    // Hayvanlara veya zombilere vurma kontrolü
+    let hitSomething = false;
+    zombies.forEach((z, idx) => {
+      let zDist = Math.hypot((z.x + z.w/2) - worldMouseX, (z.y + z.h/2) - worldMouseY);
+      if (zDist < 30) {
+        let activeSlot = hotbar[player.selectedSlot];
+        let dmg = (activeSlot.id && ITEM_TYPES[activeSlot.id]?.isTool) ? 1 : 1; // 2 darbede ölür (z hp:2)
+        z.hp -= dmg;
+        hitSomething = true;
+        if (z.hp <= 0) zombies.splice(idx, 1);
+      }
+    });
+
+    animals.forEach((a, idx) => {
+      let aDist = Math.hypot((a.x + a.w/2) - worldMouseX, (a.y + a.h/2) - worldMouseY);
+      if (aDist < 30) {
+        a.hp -= 5;
+        hitSomething = true;
+        if (a.hp <= 0) {
+          if (a.type === 'cow') {
+            addPlayerItem(34, 1); // Çiğ İnek Eti
+          } else {
+            addPlayerItem(36, 1); // Çiğ Koyun Eti
+          }
+          animals.splice(idx, 1);
+        }
+      }
+    });
+
+    if (!hitSomething && world[ty]?.[tx] !== 0 && world[ty]?.[tx] !== 38) {
       mining.active = true;
       mining.x = tx;
       mining.y = ty;
@@ -703,13 +887,64 @@ function updatePhysics() {
     player.grounded = true;
   }
 
+  // Haritadan aşağı düşme kontrolü
+  if (player.y > MAP_H * TILE_SIZE) {
+    respawnPlayer();
+  }
+
+  // Hayvanların AI hareketleri
+  animals.forEach(a => {
+    a.vy += 0.42;
+    a.x += a.dir * 0.8;
+    // Çarpışma / yön değiştirme
+    if (Math.random() < 0.02) a.dir *= -1;
+    let atx = Math.floor((a.x + a.w/2) / TILE_SIZE);
+    let aty = Math.floor((a.y + a.h) / TILE_SIZE);
+    if (atx >= 0 && atx < MAP_W && aty >= 0 && aty < MAP_H && isSolidBlock(a.x, a.y + a.h)) {
+      a.y = aty * TILE_SIZE - a.h;
+      a.vy = 0;
+    }
+  });
+
+  // Zombilerin AI hareketleri (görüş açısına göre yaklaşma / rastgele dolanma)
+  zombies.forEach(z => {
+    z.vy += 0.42;
+    let distToPlayer = Math.hypot(player.x - z.x, player.y - z.y);
+    if (distToPlayer < 250) {
+      // Oyuncuyu fark ederse yönelir
+      z.facing = player.x > z.x ? 1 : -1;
+      z.vx = z.facing * 1.2;
+    } else {
+      // Rastgele hareket (kendi halinde dolanma)
+      if (Math.random() < 0.02) z.facing *= -1;
+      z.vx = z.facing * 0.6;
+    }
+
+    z.x += z.vx;
+    let ztx = Math.floor((z.x + z.w/2) / TILE_SIZE);
+    let zty = Math.floor((z.y + z.h) / TILE_SIZE);
+    if (ztx >= 0 && ztx < MAP_W && zty >= 0 && zty < MAP_H && isSolidBlock(z.x, z.y + z.h)) {
+      z.y = zty * TILE_SIZE - z.h;
+      z.vy = 0;
+    }
+
+    // Oyuncuya temas ederse 5 kalp (50 HP) hasar verir
+    let hitBoxOverlap = (player.x < z.x + z.w && player.x + player.w > z.x && player.y < z.y + z.h && player.y + player.h > z.y);
+    if (hitBoxOverlap && totalGameTicks % 60 === 0) {
+      player.health -= 50;
+      if (player.health <= 0) {
+        respawnPlayer();
+      }
+    }
+  });
+
   if (mining.active) {
     let activeSlot = hotbar[player.selectedSlot];
     let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
     let speed = ITEM_TYPES[activeItem]?.speed || 1.0;
     let target = world[mining.y]?.[mining.x];
 
-    if (target && target !== 0) {
+    if (target && target !== 0 && target !== 38) {
       if (ITEM_TYPES[target].needTool && !ITEM_TYPES[activeItem]?.isTool) {
         mining.progress = 0;
       } else {
@@ -726,6 +961,10 @@ function updatePhysics() {
       mining.active = false;
     }
   }
+
+  // HUD güncelleme
+  document.getElementById("health-display").innerText = `❤️ ${player.health} / ${player.maxHealth}`;
+  document.getElementById("hunger-display").innerText = `🍗 ${player.hunger} / ${player.maxHunger}`;
 }
 
 function renderToolGraphic(info, x, y, size, targetCtx) {
@@ -759,9 +998,9 @@ function renderTile(id, x, y, size, targetCtx) {
     return;
   }
 
-  if (info.isItem) {
+  if (info.isItem || info.isFood) {
     targetCtx.fillStyle = info.color;
-    targetCtx.fillRect(x + size / 2 - 2, y + 4, 4, size - 8);
+    targetCtx.fillRect(x + size / 2 - 4, y + 4, 8, size - 8);
     return;
   }
 
@@ -809,9 +1048,12 @@ function renderTile(id, x, y, size, targetCtx) {
   } else if (id === 22) {
     targetCtx.fillStyle = "#78350f";
     targetCtx.fillRect(x + 4, y + 4, size - 8, 6);
-    targetCtx.fillStyle = "#451a03";
-    targetCtx.fillRect(x + 6, y + 10, 4, size - 12);
-    targetCtx.fillRect(x + size - 10, y + 10, 4, size - 12);
+  } else if (id === 32) {
+    targetCtx.fillStyle = "#ffffff";
+    targetCtx.fillRect(x + 2, y + 16, size - 4, 12);
+  } else if (id === 33) {
+    targetCtx.fillStyle = "#1e293b";
+    targetCtx.fillRect(x + 6, y + 10, size - 12, size - 12);
   }
 }
 
@@ -873,6 +1115,36 @@ function renderPlayerTerraria(screenX, screenY) {
   ctx.restore();
 }
 
+function renderZombie(z, drawCamX, drawCamY) {
+  let zx = z.x - drawCamX;
+  let zy = z.y - drawCamY;
+  ctx.save();
+  ctx.fillStyle = "#166534"; // Yeşil zombi teni
+  ctx.fillRect(zx, zy + 12, 18, 30);
+  ctx.fillStyle = "#14532d";
+  ctx.fillRect(zx + 2, zy, 14, 14);
+  ctx.fillStyle = "#ef4444"; // Kırmızı zombi gözü
+  ctx.fillRect(zx + 3, zy + 4, 3, 3);
+  ctx.fillRect(zx + 9, zy + 4, 3, 3);
+  ctx.restore();
+}
+
+function renderAnimal(a, drawCamX, drawCamY) {
+  let ax = a.x - drawCamX;
+  let ay = a.y - drawCamY;
+  ctx.save();
+  if (a.type === 'cow') {
+    ctx.fillStyle = "#334155"; // İnek siyah/beyaz lekeli
+    ctx.fillRect(ax, ay, a.w, a.h);
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(ax + 4, ay + 4, 10, 10);
+  } else {
+    ctx.fillStyle = "#e2e8f0"; // Koyun yünü
+    ctx.fillRect(ax, ay, a.w, a.h);
+  }
+  ctx.restore();
+}
+
 function render() {
   camX += (player.x - camX) * 0.1;
   camY += (player.y - camY) * 0.1;
@@ -909,6 +1181,9 @@ function render() {
       }
     }
   }
+
+  animals.forEach(a => renderAnimal(a, drawCamX, drawCamY));
+  zombies.forEach(z => renderZombie(z, drawCamX, drawCamY));
 
   if (mining.active) {
     let bx = mining.x * TILE_SIZE - drawCamX;
@@ -1042,11 +1317,12 @@ function buildInventoryCraftingUI() {
   const list = document.getElementById("inventory-recipe-list");
   list.innerHTML = "";
   
-  // Minecraft standartlarına uygun envanter tarifleri (örn: 1 odun -> 4 tahta blok, tahta kazma için 3 tahta + 2 çubuk vb.)
   const recipes = [
     { result: 8, count: 4, cost: { 4: 1 }, name: "4x Ahşap Blok (1 Odun)" },
     { result: 9, count: 4, cost: { 8: 1 }, name: "4x Çubuk (1 Ahşap Blok)" },
     { result: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası (4x Ahşap Blok)" },
+    { result: 32, count: 1, cost: { 8: 3, 5: 3 }, name: "Yatak (3 Ahşap, 3 Yaprak)" },
+    { result: 33, count: 1, cost: { 3: 8 }, name: "Fırın (8 Taş)" },
     { result: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma (3 Ahşap, 2 Çubuk)" },
     { result: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta (3 Ahşap, 2 Çubuk)" }
   ];
@@ -1082,7 +1358,6 @@ function buildCraftingTableUI() {
   const list = document.getElementById("crafting-recipe-list");
   list.innerHTML = "";
 
-  // Minecraft standartlarına uyarlanmış Çalışma Masası maliyetleri (Kazma/Balta için 3 malzeme + 2 çubuk; Setler kask:5, göğüs:8, pantolon:7, bot:4 olacak şekilde ayarlandı)
   const recipes = [
     { result: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma (3 Taş, 2 Çubuk)" },
     { result: 24, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Balta (3 Taş, 2 Çubuk)" },
@@ -1122,6 +1397,43 @@ function buildCraftingTableUI() {
         }
         addPlayerItem(r.result, r.count);
         buildCraftingTableUI();
+      };
+    }
+    list.appendChild(card);
+  });
+}
+
+function buildFurnaceUI() {
+  updateItemCounts();
+  const list = document.getElementById("furnace-recipe-list");
+  list.innerHTML = "";
+
+  // Fırın tarifleri (kömür yakıt ister)
+  const recipes = [
+    { result: 35, count: 1, cost: { 34: 1, 6: 1 }, name: "Pişmiş İnek Eti (1 Çiğ İnek Eti + 1 Kömür)" },
+    { result: 37, count: 1, cost: { 36: 1, 6: 1 }, name: "Pişmiş Koyun Eti (1 Çiğ Koyun Eti + 1 Kömür)" }
+  ];
+
+  recipes.forEach(r => {
+    let canCraft = true;
+    for (let itemId in r.cost) {
+      if ((itemCounts[itemId] || 0) < r.cost[itemId]) {
+        canCraft = false;
+        break;
+      }
+    }
+
+    let card = document.createElement("div");
+    card.className = `recipe-card ${canCraft ? '' : 'disabled'}`;
+    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">Pişir</span>`;
+    
+    if (canCraft) {
+      card.onclick = () => {
+        for (let itemId in r.cost) {
+          consumePlayerItem(parseInt(itemId), r.cost[itemId]);
+        }
+        addPlayerItem(r.result, r.count);
+        buildFurnaceUI();
       };
     }
     list.appendChild(card);
@@ -1217,6 +1529,16 @@ function toggleCraftingModal() {
   } else {
     modal.style.display = "block";
     buildCraftingTableUI();
+  }
+}
+
+function toggleFurnaceModal() {
+  let modal = document.getElementById("furnace-modal");
+  if (modal.style.display === "block") {
+    modal.style.display = "none";
+  } else {
+    modal.style.display = "block";
+    buildFurnaceUI();
   }
 }
 
