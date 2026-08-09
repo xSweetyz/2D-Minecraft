@@ -398,19 +398,14 @@ function initWorld() {
 }
 initWorld();
 
-// 20 Dakikalık Gece/Gündüz Döngüsü (10 dk Gündüz, 10 dk Gece)
-// 60 FPS varsayımıyla: 20 dakika = 20 * 60 * 60 = 72000 frame
 let totalGameTicks = 0;
-let timeOfDay = 0; // 0.0 - 1.0 aralığı
+let timeOfDay = 0; 
 let currentDay = 1;
 
 function updateDayNightCycle() {
   totalGameTicks++;
-  // 72000 frame = 1 tam döngü (20 dakika)
   let cycleProgress = (totalGameTicks % 72000) / 72000;
   timeOfDay = cycleProgress;
-
-  // Gün sayısını hesapla
   currentDay = Math.floor(totalGameTicks / 72000) + 1;
 
   let isDay = timeOfDay < 0.5;
@@ -593,7 +588,6 @@ bindTouchButton("btn-action", () => {
   let tx = Math.floor(targetX / TILE_SIZE);
   let ty = Math.floor(targetY / TILE_SIZE);
   
-  // Çalışma masası sağ tık ile açılacak, sol tık ile artık kırılıp envantere alınabilecek.
   if (world[ty]?.[tx] !== 0) {
     let mined = world[ty][tx];
     world[ty][tx] = 0;
@@ -609,7 +603,6 @@ bindTouchButton("btn-action", () => {
   }
 });
 
-// Canvas üzerinde Fare Tıklama İşlemleri (Sol Tık: Kırma, Sağ Tık: Çalışma Masası Açma / Blok Koyma)
 canvas.addEventListener("contextmenu", e => e.preventDefault());
 
 canvas.addEventListener("mousedown", e => {
@@ -628,21 +621,18 @@ canvas.addEventListener("mousedown", e => {
   let tx = Math.floor(worldMouseX / TILE_SIZE);
   let ty = Math.floor(worldMouseY / TILE_SIZE);
 
-  // Mesafe kontrolü (oyuncunun yakını olmalı)
   let pCenterX = player.x + player.w / 2;
   let pCenterY = player.y + player.h / 2;
   let dist = Math.hypot(worldMouseX - pCenterX, worldMouseY - pCenterY);
 
-  if (dist > TILE_SIZE * 5) return; // Çok uzaktaysa işlem yapma
+  if (dist > TILE_SIZE * 5) return;
 
   if (e.button === 2) {
-    // Sağ Tık: Çalışma masası ise aç, değilse blok koy
     if (world[ty]?.[tx] === 22) {
       toggleCraftingModal();
       return;
     }
 
-    // Blok koyma
     if (world[ty]?.[tx] === 0) {
       let activeSlot = hotbar[player.selectedSlot];
       let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
@@ -652,7 +642,6 @@ canvas.addEventListener("mousedown", e => {
       }
     }
   } else if (e.button === 0) {
-    // Sol Tık: Kazma / Kırma işlemi başlat
     if (world[ty]?.[tx] !== 0) {
       mining.active = true;
       mining.x = tx;
@@ -896,7 +885,6 @@ function render() {
   let drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, camX - viewW / 2));
   let drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, camY - viewH / 2));
 
-  // Gökyüzü rengini zaman döngüsüne göre dinamik geçişli yapalım
   let skyGrad = ctx.createLinearGradient(0, 0, 0, viewH);
   if (timeOfDay < 0.5) {
     skyGrad.addColorStop(0, "#0284c7");
@@ -1057,7 +1045,7 @@ function buildInventoryCraftingUI() {
   const recipes = [
     { result: 8, count: 4, cost: { 4: 1 }, name: "4x Ahşap Blok (Odun)" },
     { result: 9, count: 4, cost: { 8: 1 }, name: "4x Çubuk (Ahşap Blok)" },
-    { result: 22, count: 1, cost: { 8: 10 }, name: "Çalışma Masası (10x Ahşap Blok)" },
+    { result: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası (4x Ahşap Blok)" },
     { result: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma (3 Ahşap, 2 Çubuk)" },
     { result: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta (3 Ahşap, 2 Çubuk)" }
   ];
