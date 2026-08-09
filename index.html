@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Terraria 2D Survival Edition - Kusursuz Görsel & Mobil Çözüm</title>
+  <title>Terraria 2D Survival Edition - Kesin Çözüm & Düzeltilmiş Arayüz</title>
   <style>
     * {
       margin: 0;
@@ -132,7 +132,7 @@
       z-index: 30;
     }
 
-    /* MOBİL DOKUNMA VE KAYDIRMA ÖNCELİĞİ TAMAMEN DÜZELTİLDİ */
+    /* TELEFONDA KESİN KAYDIRMA VE DOKUNMA ÇÖZÜMÜ: pointer-events ve touch-action aktif */
     #inventory-modal {
       display: none;
       position: absolute;
@@ -347,8 +347,7 @@
     #orientation-warning {
       display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      top: 0; left: 0; width: 100vw; height: 100vh;
       background: #0f172a;
       z-index: 9999;
       color: #fff;
@@ -404,8 +403,8 @@
     <div class="inventory-container">
       <div class="main-inv-area">
         <div class="section-title">Hotbar (Hızlı Erişim - 5 Slot)</div>
-        <div class="inv-grid" id="modal-hotbar-grid" style="grid-template-columns: repeat(5, 1fr);"></div>
-        <div class="section-title">Ana Depo (16 Slot)</div>
+        <div class="inv-grid" id="modal-hotbar-grid"></div>
+        <div class="section-title">Ana Depo (17 Slot)</div>
         <div class="inv-grid" id="modal-storage-grid" style="grid-template-columns: repeat(4, 1fr);"></div>
       </div>
       <div class="armor-equip-area">
@@ -499,7 +498,7 @@ document.addEventListener("fullscreenchange", () => {
 const TILE_SIZE = 32;
 const ZOOM = 1.15;
 const MAP_W = 400; 
-const MAP_H = 160;
+const MAP_H = 160; 
 
 const ITEM_TYPES = {
   0: { name: "Hava", solid: false },
@@ -514,6 +513,7 @@ const ITEM_TYPES = {
   21: { name: "Demir Cevheri", solid: true, time: 260, needTool: true, isOre: true, color: "#6b7280", darkColor: "#374151", borderHighlight: "#9ca3af", oreColor: "#cbd5e1" },
   41: { name: "Demir", solid: false, isItem: true, color: "#cbd5e1" },
   8: { name: "Ahşap Blok", solid: true, time: 60, color: "#a16207", darkColor: "#713f12", borderHighlight: "#ca8a04" },
+  // Çubuk ve Zırh/Alet Texture düzenlemeleriyle daha net görsel
   9: { name: "Çubuk", solid: false, isItem: true, color: "#854d0e", isStick: true },
   22: { name: "Çalışma Masası", solid: true, time: 70, isCraftingTable: true, color: "#b45309", darkColor: "#78350f", borderHighlight: "#d97706" },
   32: { name: "Yatak", solid: true, time: 60, isBed: true, color: "#ef4444", darkColor: "#991b1b", borderHighlight: "#f87171" },
@@ -524,6 +524,7 @@ const ITEM_TYPES = {
   36: { name: "Çiğ Koyun Eti", solid: false, isFood: true, foodValue: 1, color: "#dc2626" },
   37: { name: "Pişmiş Koyun Eti", solid: false, isFood: true, foodValue: 3, color: "#991b1b" },
   39: { name: "Yün", solid: false, isItem: true, color: "#f8fafc" },
+
   38: { name: "Katman Kayası (Bedrock)", solid: true, unbreakable: true, color: "#171717", darkColor: "#0a0a0a", borderHighlight: "#262626" },
 
   10: { name: "Tahta Kazma", solid: false, isTool: true, toolType: 'pickaxe', tier: 1, speed: 4.0, color: "#b45309" },
@@ -677,8 +678,9 @@ const storage = [
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
-  { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+  { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
 ];
+
 const equippedArmor = {
   head: { id: 0, count: 0 },
   chest: { id: 0, count: 0 },
@@ -751,16 +753,21 @@ function resetGameData() {
     alert("Oyun tamamen sıfırlandı!");
   }
 }
-window.addEventListener("beforeunload", () => { saveGameData(); });
+
+window.addEventListener("beforeunload", () => {
+  saveGameData();
+});
 
 const itemCounts = {};
+
 function updateItemCounts() {
   for (let key in itemCounts) delete itemCounts[key];
   const tally = (slot) => {
     if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
       itemCounts[slot.id] = (itemCounts[slot.id] || 0) + slot.count;
     } else if (slot) {
-      slot.id = 0; slot.count = 0;
+      slot.id = 0;
+      slot.count = 0;
     }
   };
   hotbar.forEach(tally);
@@ -829,12 +836,39 @@ function handlePlayerDeath() {
   for (let i = 0; i < storage.length; i++) { storage[i].id = 0; storage[i].count = 0; }
   for (let k in equippedArmor) { equippedArmor[k].id = 0; equippedArmor[k].count = 0; }
   updateItemCounts();
+
   if (spawnBedX !== -1 && spawnBedY !== -1) {
     player.x = spawnBedX * TILE_SIZE;
     player.y = (spawnBedY - 1) * TILE_SIZE;
   } else {
     player.x = 20 * TILE_SIZE;
     player.y = (surfaceY - 4) * TILE_SIZE;
+  }
+}
+
+function checkTreeLeavesDecay(tx, ty) {
+  let startX = tx - 3;
+  let endX = tx + 3;
+  let startY = ty - 5;
+  let endY = ty + 1;
+
+  for (let y = startY; y <= endY; y++) {
+    for (let x = startX; x <= endX; x++) {
+      if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
+        if (world[y][x] === 4) return;
+      }
+    }
+  }
+
+  for (let y = startY; y <= endY; y++) {
+    for (let x = startX; x <= endX; x++) {
+      if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
+        if (world[y][x] === 5) {
+          world[y][x] = 0;
+          if (Math.random() < 0.2) addPlayerItem(5, 1);
+        }
+      }
+    }
   }
 }
 
@@ -847,7 +881,7 @@ window.addEventListener("keydown", e => {
   keys[k] = true;
   if ("12345".includes(e.key)) player.selectedSlot = parseInt(e.key) - 1;
   if ((k === "w" || k === " ") && player.grounded) {
-    player.vy = -6.8;
+    player.vy = -6.8; 
     player.grounded = false;
   }
   if (k === "e") toggleInventoryModal();
@@ -860,36 +894,1187 @@ window.addEventListener("keyup", e => {
 function bindTouchButton(id, actionDown, actionUp) {
   const btn = document.getElementById(id);
   if (!btn) return;
-  btn.addEventListener("touchstart", (e) => { e.preventDefault(); btn.classList.add("pressed"); actionDown(); }, { passive: false });
-  btn.addEventListener("touchend", (e) => { e.preventDefault(); btn.classList.remove("pressed"); if (actionUp) actionUp(); }, { passive: false });
-  btn.addEventListener("touchcancel", (e) => { e.preventDefault(); btn.classList.remove("pressed"); if (actionUp) actionUp(); }, { passive: false });
+  btn.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    btn.classList.add("pressed");
+    actionDown();
+  }, { passive: false });
+  btn.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    btn.classList.remove("pressed");
+    if (actionUp) actionUp();
+  }, { passive: false });
+  btn.addEventListener("touchcancel", (e) => {
+    e.preventDefault();
+    btn.classList.remove("pressed");
+    if (actionUp) actionUp();
+  }, { passive: false });
+
   btn.addEventListener("mousedown", (e) => { e.preventDefault(); actionDown(); });
   btn.addEventListener("mouseup", (e) => { e.preventDefault(); if (actionUp) actionUp(); });
 }
 
-bindTouchButton("btn-left", () => { keys["a"] = true; }, () => { keys["a"] = false; });
-bindTouchButton("btn-right", () => { keys["d"] = true; }, () => { keys["d"] = false; });
+bindTouchButton("btn-left", () => keys["a"] = true, () => keys["a"] = false);
+bindTouchButton("btn-right", () => keys["d"] = true, () => keys["d"] = false);
 bindTouchButton("btn-jump", () => {
-  if (player.grounded) {
-    player.vy = -6.8;
-    player.grounded = false;
-  }
+  if (player.grounded) { player.vy = -6.8; player.grounded = false; }
 });
-bindTouchButton("btn-inv", () => { toggleInventoryModal(); });
+bindTouchButton("btn-inv", () => toggleInventoryModal());
 
 const actionBtn = document.getElementById("btn-action");
-actionBtn.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-  mobilePlaceMode = !mobilePlaceMode;
-  if (mobilePlaceMode) actionBtn.classList.add("place-mode");
-  else actionBtn.classList.remove("place-mode");
-}, { passive: false });
-actionBtn.addEventListener("mousedown", (e) => {
-  e.preventDefault();
-  mobilePlaceMode = !mobilePlaceMode;
-  if (mobilePlaceMode) actionBtn.classList.add("place-mode");
-  else actionBtn.classList.remove("place-mode");
+if (actionBtn) {
+  actionBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    mobilePlaceMode = !mobilePlaceMode;
+    if (mobilePlaceMode) {
+      actionBtn.classList.add("place-mode");
+      actionBtn.innerText = "🧱";
+    } else {
+      actionBtn.classList.remove("place-mode");
+      actionBtn.innerText = "⛏️";
+    }
+  });
+}
+
+function updateDayNightCycle() {
+  totalGameTicks++;
+  let cycleProgress = (totalGameTicks % 72000) / 72000;
+  timeOfDay = cycleProgress;
+  currentDay = Math.floor(totalGameTicks / 72000) + 1;
+
+  let isDay = timeOfDay < 0.5;
+  let dayText = isDay ? "☀️ Gündüz" : "🌙 Gece";
+  document.getElementById("time-display").innerText = `${dayText} (${currentDay}. Gün)`;
+
+  if (totalGameTicks % 120 === 0 && player.hunger >= 4 && player.health < player.maxHealth) {
+    player.health = Math.min(player.maxHealth, player.health + 10);
+  }
+
+  if (!isDay && zombies.length < 3 && Math.random() < 0.005) {
+    let zx = player.x + (Math.random() < 0.5 ? -400 : 400);
+    let ztx = Math.floor(zx / TILE_SIZE);
+    if (ztx > 0 && ztx < MAP_W) {
+      for (let y = 0; y < MAP_H; y++) {
+        if (world[y][ztx] === 1) {
+          zombies.push({
+            x: ztx * TILE_SIZE,
+            y: (y - 1) * TILE_SIZE,
+            w: 18,
+            h: 42,
+            vx: 0,
+            vy: 0,
+            hp: 10,
+            maxHp: 10,
+            facing: 1,
+            animFrame: 0,
+            actionTimer: Math.random() * 100,
+            state: 'walk',
+            hitFlashTimer: 0
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  if (isDay) {
+    zombies = []; 
+  }
+}
+
+let camX = player.x;
+let camY = player.y;
+
+canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+function handleCanvasInteraction(clientX, clientY, isSecondary) {
+  const rect = canvas.getBoundingClientRect();
+  const mouseScreenX = clientX - rect.left;
+  const mouseScreenY = clientY - rect.top;
+
+  let viewW = canvas.width / ZOOM;
+  let viewH = canvas.height / ZOOM;
+  let drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, camX - viewW / 2));
+  let drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, camY - viewH / 2));
+
+  let worldMouseX = (mouseScreenX / ZOOM) + drawCamX;
+  let worldMouseY = (mouseScreenY / ZOOM) + drawCamY;
+
+  let tx = Math.floor(worldMouseX / TILE_SIZE);
+  let ty = Math.floor(worldMouseY / TILE_SIZE);
+
+  let pCenterX = player.x + player.w / 2;
+  let pCenterY = player.y + player.h / 2;
+  let dist = Math.hypot(worldMouseX - pCenterX, worldMouseY - pCenterY);
+
+  if (dist > TILE_SIZE * 5) return;
+
+  if (isSecondary || mobilePlaceMode) {
+    let clickedBlock = world[ty]?.[tx];
+    if (clickedBlock === 22) {
+      toggleCraftingModal();
+      return;
+    }
+    if (clickedBlock === 33) {
+      toggleFurnaceModal();
+      return;
+    }
+    if (clickedBlock === 32) {
+      if (timeOfDay >= 0.5) {
+        totalGameTicks += 36000; 
+        alert("Sabah oldu! Uyandın.");
+      } else {
+        alert("Sadece geceleri uyuyabilirsin.");
+      }
+      return;
+    }
+
+    let activeSlot = hotbar[player.selectedSlot];
+    let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
+
+    if (activeItem && ITEM_TYPES[activeItem].isFood) {
+      player.hunger = Math.min(player.maxHunger, player.hunger + ITEM_TYPES[activeItem].foodValue);
+      consumePlayerItem(activeItem, 1);
+      return;
+    }
+
+    if (clickedBlock === 0 && activeItem && !ITEM_TYPES[activeItem].isTool && !ITEM_TYPES[activeItem].isItem && !ITEM_TYPES[activeItem].isArmor && !ITEM_TYPES[activeItem].isFood && !ITEM_TYPES[activeItem].isWeapon) {
+      world[ty][tx] = activeItem;
+      if (activeItem === 32) {
+        spawnBedX = tx;
+        spawnBedY = ty;
+      }
+      consumePlayerItem(activeItem, 1);
+    }
+  } else {
+    let hitSomething = false;
+    let activeSlot = hotbar[player.selectedSlot];
+    let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
+    let dmg = 1;
+    if (activeItem && ITEM_TYPES[activeItem].isWeapon) {
+      dmg = ITEM_TYPES[activeItem].damage;
+    }
+
+    zombies.forEach((z, idx) => {
+      let zDist = Math.hypot((z.x + z.w/2) - worldMouseX, (z.y + z.h/2) - worldMouseY);
+      if (zDist < 35) {
+        z.hp -= dmg;
+        z.hitFlashTimer = 15;
+        z.vx = (player.x < z.x ? 1 : -1) * 4; 
+        z.vy = -2;
+        hitSomething = true;
+        if (z.hp <= 0) zombies.splice(idx, 1);
+      }
+    });
+
+    animals.forEach((a, idx) => {
+      let aDist = Math.hypot((a.x + a.w/2) - worldMouseX, (a.y + a.h/2) - worldMouseY);
+      if (aDist < 35) {
+        a.hp -= dmg;
+        a.hitFlashTimer = 15;
+        a.vx = (player.x < a.x ? 1 : -1) * 4; 
+        a.vy = -3;
+        hitSomething = true;
+        if (a.hp <= 0) {
+          if (a.type === 'cow') {
+            addPlayerItem(34, 1); 
+          } else {
+            addPlayerItem(36, 1); 
+            addPlayerItem(39, 1);
+          }
+          animals.splice(idx, 1);
+        }
+      }
+    });
+
+    if (!hitSomething && world[ty]?.[tx] !== 0 && world[ty]?.[tx] !== 38) {
+      mining.active = true;
+      mining.x = tx;
+      mining.y = ty;
+      mining.progress = 0;
+    }
+  }
+}
+
+canvas.addEventListener("mousedown", e => {
+  handleCanvasInteraction(e.clientX, e.clientY, e.button === 2);
 });
+
+canvas.addEventListener("mouseup", e => {
+  if (e.button === 0) mining.active = false;
+});
+
+canvas.addEventListener("touchstart", e => {
+  if (e.target === canvas) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    handleCanvasInteraction(touch.clientX, touch.clientY, mobilePlaceMode);
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchend", e => {
+  if (e.target === canvas) {
+    e.preventDefault();
+    mining.active = false;
+  }
+}, { passive: false });
+
+function isSolidBlock(px, py) {
+  let tx = Math.floor(px / TILE_SIZE);
+  let ty = Math.floor(py / TILE_SIZE);
+  if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return true;
+  let blockId = world[ty][tx];
+  if (blockId === 5) return false;
+  return ITEM_TYPES[blockId].solid;
+}
+
+function updatePhysics() {
+  updateDayNightCycle();
+
+  if (player.x < 0 || player.x > MAP_W * TILE_SIZE) {
+    handlePlayerDeath();
+    return;
+  }
+
+  if (keys["a"] || keys["arrowleft"]) {
+    player.vx -= player.accX;
+    player.facing = -1;
+  } else if (keys["d"] || keys["arrowright"]) {
+    player.vx += player.accX;
+    player.facing = 1;
+  } else {
+    player.vx *= player.friction;
+  }
+
+  player.vx = Math.max(-player.maxSpeed, Math.min(player.maxSpeed, player.vx));
+  player.vy += 0.42;
+
+  if (Math.abs(player.vx) > 0.2 && player.grounded) player.animFrame += 0.2;
+  else player.animFrame = 0;
+
+  player.x += player.vx;
+  if (player.vx > 0 && (isSolidBlock(player.x + player.w, player.y) || isSolidBlock(player.x + player.w, player.y + player.h - 2))) {
+    player.x = Math.floor((player.x + player.w) / TILE_SIZE) * TILE_SIZE - player.w - 0.1;
+    player.vx = 0;
+  }
+  if (player.vx < 0 && (isSolidBlock(player.x, player.y) || isSolidBlock(player.x, player.y + player.h - 2))) {
+    player.x = Math.floor(player.x / TILE_SIZE + 1) * TILE_SIZE + 0.1;
+    player.vx = 0;
+  }
+
+  player.y += player.vy;
+  player.grounded = false;
+  if (player.vy > 0 && (isSolidBlock(player.x + 2, player.y + player.h) || isSolidBlock(player.x + player.w - 2, player.y + player.h))) {
+    player.y = Math.floor((player.y + player.h) / TILE_SIZE) * TILE_SIZE - player.h;
+    player.vy = 0;
+    player.grounded = true;
+  }
+
+  if (player.y > MAP_H * TILE_SIZE) {
+    handlePlayerDeath();
+  }
+
+  animals.forEach(a => {
+    if (a.hitFlashTimer > 0) a.hitFlashTimer--;
+    a.vy += 0.42;
+    a.actionTimer++;
+
+    if (a.actionTimer > 120 + Math.random() * 150) {
+      a.actionTimer = 0;
+      let rand = Math.random();
+      if (rand < 0.4) {
+        a.state = 'idle';
+        a.vx = 0;
+      } else if (rand < 0.8) {
+        a.state = 'walk';
+        a.dir = Math.random() < 0.5 ? 1 : -1;
+      } else {
+        a.state = 'jump';
+        a.dir = Math.random() < 0.5 ? 1 : -1;
+        a.vy = -5;
+      }
+    }
+
+    if (a.state === 'walk' || a.state === 'jump') {
+      a.vx = a.dir * 0.9;
+      a.animFrame += 0.15;
+    } else {
+      a.vx *= 0.8;
+      a.animFrame = 0;
+    }
+
+    let checkAheadX = a.x + (a.dir > 0 ? a.w + 4 : -4);
+    let atx = Math.floor(checkAheadX / TILE_SIZE);
+    let aty = Math.floor((a.y + a.h - 2) / TILE_SIZE);
+    if (atx >= 0 && atx < MAP_W && aty >= 0 && aty < MAP_H) {
+      if (isSolidBlock(checkAheadX, a.y + a.h - 4)) {
+        let aboveY = Math.floor((a.y + a.h - TILE_SIZE - 2) / TILE_SIZE);
+        if (aboveY >= 0 && !isSolidBlock(checkAheadX, aboveY * TILE_SIZE)) {
+          a.vy = -5.5;
+        } else {
+          a.dir *= -1;
+        }
+      }
+    }
+
+    a.x += a.vx;
+    if (a.vx > 0 && isSolidBlock(a.x + a.w, a.y + a.h - 4)) {
+      a.x = Math.floor((a.x + a.w) / TILE_SIZE) * TILE_SIZE - a.w - 0.1;
+      a.vx = 0;
+      a.dir = -1;
+    } else if (a.vx < 0 && isSolidBlock(a.x, a.y + a.h - 4)) {
+      a.x = Math.floor(a.x / TILE_SIZE + 1) * TILE_SIZE + 0.1;
+      a.vx = 0;
+      a.dir = 1;
+    }
+
+    a.y += a.vy;
+    let btx = Math.floor((a.x + a.w/2) / TILE_SIZE);
+    let bty = Math.floor((a.y + a.h) / TILE_SIZE);
+    if (bty >= 0 && bty < MAP_H && btx >= 0 && btx < MAP_W) {
+      if (isSolidBlock(a.x + 2, a.y + a.h) || isSolidBlock(a.x + a.w - 2, a.y + a.h)) {
+        a.y = bty * TILE_SIZE - a.h;
+        a.vy = 0;
+      }
+    }
+  });
+
+  zombies.forEach(z => {
+    if (z.hitFlashTimer > 0) z.hitFlashTimer--;
+    z.vy += 0.42;
+    z.actionTimer++;
+
+    let distToPlayer = Math.hypot(player.x - z.x, player.y - z.y);
+    if (distToPlayer < 300) {
+      z.facing = player.x > z.x ? 1 : -1;
+      z.vx = z.facing * 1.3;
+      z.animFrame += 0.2;
+    } else {
+      if (z.actionTimer > 100) {
+        z.actionTimer = 0;
+        if (Math.random() < 0.5) z.facing *= -1;
+      }
+      z.vx = z.facing * 0.6;
+      z.animFrame += 0.1;
+    }
+
+    let checkAheadX = z.x + (z.facing > 0 ? z.w + 4 : -4);
+    let atx = Math.floor(checkAheadX / TILE_SIZE);
+    let aty = Math.floor((z.y + z.h - 2) / TILE_SIZE);
+    if (atx >= 0 && atx < MAP_W && aty >= 0 && aty < MAP_H) {
+      if (isSolidBlock(checkAheadX, z.y + z.h - 4)) {
+        z.vy = -5.5;
+      }
+    }
+
+    z.x += z.vx;
+    let ztx = Math.floor((z.x + z.w/2) / TILE_SIZE);
+    let zty = Math.floor((z.y + z.h) / TILE_SIZE);
+    if (ztx >= 0 && ztx < MAP_W && zty >= 0 && zty < MAP_H && isSolidBlock(z.x, z.y + z.h)) {
+      z.y = zty * TILE_SIZE - z.h;
+      z.vy = 0;
+    }
+
+    let hitBoxOverlap = (player.x < z.x + z.w && player.x + player.w > z.x && player.y < z.y + z.h && player.y + player.h > z.y);
+    if (hitBoxOverlap && totalGameTicks % 60 === 0) {
+      player.health -= 20;
+      if (player.health <= 0) {
+        handlePlayerDeath();
+      }
+    }
+  });
+
+  if (mining.active) {
+    let activeSlot = hotbar[player.selectedSlot];
+    let activeItem = activeSlot.count > 0 ? activeSlot.id : 0;
+    let speed = ITEM_TYPES[activeItem]?.speed || 1.0;
+    let target = world[mining.y]?.[mining.x];
+
+    if (target && target !== 0 && target !== 38) {
+      if (ITEM_TYPES[target].needTool && !ITEM_TYPES[activeItem]?.isTool) {
+        mining.progress = 0;
+      } else {
+        mining.progress += speed;
+        if (mining.progress >= ITEM_TYPES[target].time) {
+          let mined = target;
+          world[mining.y][mining.x] = 0;
+          if (mined === 7) addPlayerItem(40, 1);
+          else if (mined === 21) addPlayerItem(41, 1);
+          else addPlayerItem(mined, 1);
+
+          if (mined === 4) checkTreeLeavesDecay(mining.x, mining.y);
+          mining.active = false;
+        }
+      }
+    } else {
+      mining.active = false;
+    }
+  }
+
+  document.getElementById("health-display").innerText = `❤️ ${player.health} / ${player.maxHealth}`;
+  document.getElementById("hunger-display").innerText = `🍗 ${player.hunger} / ${player.maxHunger}`;
+}
+
+function renderToolGraphic(info, x, y, size, targetCtx) {
+  targetCtx.save();
+  targetCtx.translate(x + size / 2, y + size / 2);
+  targetCtx.rotate(Math.PI / 4);
+
+  targetCtx.fillStyle = "#78350f";
+  targetCtx.fillRect(-2, -size / 3, 4, size / 1.5);
+
+  if (info.toolType === 'pickaxe') {
+    targetCtx.fillStyle = info.color;
+    targetCtx.fillRect(-size / 2.5, -size / 2.5, size / 1.25, 6);
+    targetCtx.fillStyle = "#1e293b";
+    targetCtx.fillRect(-2, -size / 2.5, 4, 6);
+  } else if (info.toolType === 'axe') {
+    targetCtx.fillStyle = info.color;
+    targetCtx.fillRect(0, -size / 2.5, size / 2.2, size / 2.2);
+    targetCtx.fillStyle = "#1e293b";
+    targetCtx.fillRect(2, -size / 2.2, size / 3, size / 2.5);
+  }
+  targetCtx.restore();
+}
+
+function renderWeaponGraphic(info, x, y, size, targetCtx) {
+  targetCtx.save();
+  targetCtx.translate(x + size / 2, y + size / 2);
+  targetCtx.rotate(Math.PI / 4);
+
+  targetCtx.fillStyle = "#78350f";
+  targetCtx.fillRect(-2, 2, 4, 8);
+  targetCtx.fillStyle = "#475569";
+  targetCtx.fillRect(-6, 2, 12, 3);
+  targetCtx.fillStyle = info.color;
+  targetCtx.fillRect(-2, -size / 2, 4, size / 1.6);
+  targetCtx.restore();
+}
+
+function renderTile(id, x, y, size, targetCtx) {
+  if (!id || id === 0) return;
+  const info = ITEM_TYPES[id];
+  
+  if (info.isTool) {
+    renderToolGraphic(info, x, y, size, targetCtx);
+    return;
+  }
+
+  if (info.isWeapon) {
+    renderWeaponGraphic(info, x, y, size, targetCtx);
+    return;
+  }
+
+  // Çubuk Texture'ü geliştirildi (Daha doğal odun çubuğu görünümü)
+  if (info.isStick) {
+    targetCtx.save();
+    targetCtx.translate(x + size/2, y + size/2);
+    targetCtx.rotate(Math.PI / 4);
+    targetCtx.fillStyle = "#78350f";
+    targetCtx.fillRect(-2, -size/2.5, 4, size/1.2);
+    targetCtx.fillStyle = "#a16207";
+    targetCtx.fillRect(-1, -size/3, 2, size/1.5);
+    targetCtx.restore();
+    return;
+  }
+
+  if (info.isFood) {
+    targetCtx.fillStyle = info.color;
+    targetCtx.fillRect(x + 4, y + 8, size - 8, size - 14);
+    targetCtx.fillStyle = "#fecdd3";
+    targetCtx.fillRect(x + 8, y + 10, 4, 4);
+    return;
+  }
+
+  if (info.isItem) {
+    targetCtx.fillStyle = info.color;
+    targetCtx.fillRect(x + 6, y + 6, size - 12, size - 12);
+    targetCtx.strokeStyle = "#000";
+    targetCtx.lineWidth = 1;
+    targetCtx.strokeRect(x + 6, y + 6, size - 12, size - 12);
+    return;
+  }
+
+  // Zırh Textureleri daha belirgin hale getirildi
+  if (info.isArmor) {
+    targetCtx.fillStyle = info.color;
+    targetCtx.fillRect(x + 4, y + 4, size - 8, size - 8);
+    targetCtx.strokeStyle = "#ffffff";
+    targetCtx.lineWidth = 1.5;
+    targetCtx.strokeRect(x + 4, y + 4, size - 8, size - 8);
+    // Zırh detay pikselleri
+    targetCtx.fillStyle = "#1e293b";
+    targetCtx.fillRect(x + 8, y + 8, size - 16, size - 16);
+    return;
+  }
+
+  targetCtx.fillStyle = info.color;
+  targetCtx.fillRect(x, y, size, size);
+
+  targetCtx.fillStyle = info.borderHighlight;
+  targetCtx.fillRect(x, y, size, 3);
+  targetCtx.fillRect(x, y, 3, size);
+
+  targetCtx.fillStyle = info.darkColor;
+  targetCtx.fillRect(x, y + size - 3, size, 3);
+  targetCtx.fillRect(x + size - 3, y, 3, size);
+
+  if (id === 1) {
+    targetCtx.fillStyle = "#866043";
+    targetCtx.fillRect(x + 3, y + 10, size - 6, size - 13);
+    targetCtx.fillStyle = info.color;
+    targetCtx.fillRect(x, y, size, 8);
+  } else if (id === 2) {
+    targetCtx.fillStyle = info.darkColor;
+    targetCtx.fillRect(x + 5, y + 6, 6, 5);
+  } else if (id === 3) {
+    targetCtx.fillStyle = "#4b5563";
+    targetCtx.fillRect(x + 6, y + 6, 8, 6);
+    targetCtx.fillRect(x + 18, y + 16, 7, 7);
+    targetCtx.fillStyle = "#1f2937";
+    targetCtx.fillRect(x + 14, y + 6, 3, 3);
+  } else if (id === 6 || id === 7 || id === 21) {
+    targetCtx.fillStyle = info.oreColor;
+    targetCtx.fillRect(x + 5, y + 5, 8, 8);
+    targetCtx.fillRect(x + 18, y + 16, 9, 9);
+    targetCtx.fillStyle = "#ffffff";
+    targetCtx.fillRect(x + 7, y + 7, 3, 3);
+    targetCtx.fillRect(x + 20, y + 18, 3, 3);
+  } else if (id === 4) {
+    targetCtx.fillStyle = info.darkColor;
+    targetCtx.fillRect(x + 6, y + 3, 4, size - 6);
+  } else if (id === 5) {
+    targetCtx.fillStyle = "#16a34a";
+    targetCtx.fillRect(x + 3, y + 3, size - 6, size - 6);
+    targetCtx.fillStyle = "#86efac";
+    targetCtx.fillRect(x + 6, y + 6, 4, 4);
+    targetCtx.fillRect(x + 18, y + 16, 4, 4);
+  } else if (id === 22) {
+    targetCtx.fillStyle = "#78350f";
+    targetCtx.fillRect(x + 4, y + 4, size - 8, 6);
+  } else if (id === 32) {
+    targetCtx.fillStyle = "#ffffff";
+    targetCtx.fillRect(x + 2, y + 16, size - 4, 12);
+  } else if (id === 33) {
+    targetCtx.fillStyle = "#1e293b";
+    targetCtx.fillRect(x + 6, y + 10, size - 12, size - 12);
+  }
+}
+
+function renderPlayerTerraria(screenX, screenY) {
+  let anim = Math.sin(player.animFrame) * 4;
+  ctx.save();
+  ctx.translate(screenX + player.w / 2, screenY + player.h / 2);
+  if (player.facing === -1) ctx.scale(-1, 1);
+
+  let bootsItem = ITEM_TYPES[equippedArmor.boots.id];
+  ctx.fillStyle = bootsItem ? bootsItem.color : "#0f172a";
+  ctx.fillRect(-6, 15 + anim, 5, 5);
+  ctx.fillRect(2, 15 - anim, 5, 5);
+
+  let legsItem = ITEM_TYPES[equippedArmor.legs.id];
+  ctx.fillStyle = legsItem ? legsItem.color : "#1e3a8a";
+  ctx.fillRect(-6, 5, 5, 10);
+  ctx.fillRect(2, 5, 5, 10);
+
+  // KESİN DÜZELTME: Karakter üstü artık KESİNLİKLE sarı/mavi değişmiyor! 
+  // İstediğin gibi zırh giyilmediği sürece sabit şık siyah/kırmızı pikselli tişört tasarımı kalıyor.
+  let chestItem = ITEM_TYPES[equippedArmor.chest.id];
+  if (chestItem) {
+    ctx.fillStyle = chestItem.color;
+    ctx.fillRect(-7, -8, 14, 13);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-7, -8, 14, 13);
+  } else {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(-7, -8, 14, 13);
+    
+    ctx.fillStyle = "#111827"; 
+    ctx.fillRect(-7, -8, 3, 13);
+    ctx.fillRect(4, -8, 3, 13);
+    
+    ctx.fillStyle = "#dc2626"; 
+    ctx.fillRect(-7, -6, 3, 2);
+    ctx.fillRect(4, -6, 3, 2);
+    ctx.fillRect(-7, -1, 3, 2);
+    ctx.fillRect(4, -1, 3, 2);
+    ctx.fillRect(-7, 4, 3, 2);
+    ctx.fillRect(4, 4, 3, 2);
+  }
+
+  ctx.fillStyle = "#fca5a5";
+  let armAngle = mining.active ? Math.sin(Date.now() * 0.02) * 0.8 : -0.2;
+  ctx.save();
+  ctx.translate(6, -4);
+  ctx.rotate(armAngle);
+  ctx.fillRect(0, 0, 4, 10);
+
+  let activeSlot = hotbar[player.selectedSlot];
+  if (activeSlot.count > 0 && activeSlot.id !== 0) {
+    ctx.save();
+    ctx.translate(2, 8);
+    renderTile(activeSlot.id, -8, -8, 20, ctx);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  ctx.fillStyle = "#fca5a5";
+  ctx.fillRect(-10, -6 - anim * 0.5, 4, 10);
+
+  ctx.fillStyle = "#fca5a5";
+  ctx.fillRect(-6, -21, 13, 13);
+
+  ctx.fillStyle = "#0f172a";
+  ctx.fillRect(-2, -16, 2, 4);
+  ctx.fillRect(3, -16, 2, 4);
+
+  let headItem = ITEM_TYPES[equippedArmor.head.id];
+  if (headItem) {
+    ctx.fillStyle = headItem.color;
+    ctx.fillRect(-7, -24, 15, 6);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-7, -24, 15, 6);
+  } else {
+    ctx.fillStyle = "#78350f";
+    ctx.fillRect(-7, -23, 15, 4);
+  }
+
+  ctx.restore();
+}
+
+function renderZombie(z, drawCamX, drawCamY) {
+  let zx = z.x - drawCamX;
+  let zy = z.y - drawCamY;
+  let anim = Math.sin(z.animFrame) * 3;
+  ctx.save();
+  ctx.fillStyle = z.hitFlashTimer > 0 ? "#ef4444" : "#166534"; 
+  ctx.fillRect(zx, zy + 12 + anim, 18, 30);
+  ctx.fillStyle = z.hitFlashTimer > 0 ? "#f87171" : "#14532d";
+  ctx.fillRect(zx + 2, zy + anim, 14, 14);
+  ctx.fillStyle = "#ef4444"; 
+  ctx.fillRect(zx + 3, zy + 4 + anim, 3, 3);
+  ctx.fillRect(zx + 9, zy + 4 + anim, 3, 3);
+  ctx.restore();
+}
+
+function renderAnimal(a, drawCamX, drawCamY) {
+  let ax = a.x - drawCamX;
+  let ay = a.y - drawCamY;
+  let anim = Math.sin(a.animFrame) * 2;
+  ctx.save();
+  if (a.type === 'cow') {
+    ctx.fillStyle = a.hitFlashTimer > 0 ? "#ef4444" : "#e2e8f0";
+    ctx.fillRect(ax, ay + 6 + anim, a.w, a.h - 8);
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(ax + 4, ay + 8 + anim, 8, 8);
+    ctx.fillRect(ax + 15, ay + 12 + anim, 7, 6);
+    ctx.fillStyle = a.hitFlashTimer > 0 ? "#ef4444" : "#e2e8f0";
+    ctx.fillRect(ax + a.w - 6, ay + 2 + anim, 10, 10);
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillRect(ax + a.w - 3, ay - 2 + anim, 3, 4);
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(ax + 3, ay + a.h - 2, 4, 4);
+    ctx.fillRect(ax + a.w - 7, ay + a.h - 2, 4, 4);
+  } else {
+    ctx.fillStyle = a.hitFlashTimer > 0 ? "#ef4444" : "#f1f5f9";
+    ctx.fillRect(ax - 2, ay + 4 + anim, a.w + 4, a.h - 6);
+    ctx.fillStyle = a.hitFlashTimer > 0 ? "#fca5a5" : "#cbd5e1";
+    ctx.fillRect(ax, ay + 6 + anim, a.w, a.h - 8);
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(ax + a.w - 5, ay + 4 + anim, 8, 8);
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(ax + 4, ay + a.h - 2, 3, 4);
+    ctx.fillRect(ax + a.w - 7, ay + a.h - 2, 3, 4);
+  }
+  ctx.restore();
+}
+
+function renderClouds(drawCamX, drawCamY, viewW, viewH) {
+  ctx.save();
+  clouds.forEach(c => {
+    c.x += c.speed;
+    if (c.x > MAP_W * TILE_SIZE) c.x = -150;
+
+    let cx = c.x - drawCamX * 0.4;
+    let cy = c.y - drawCamY * 0.2;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+    if (c.type === 0) {
+      ctx.fillRect(cx, cy + 10, 60, 15);
+      ctx.fillRect(cx + 10, cy, 30, 10);
+    } else if (c.type === 1) {
+      ctx.fillRect(cx, cy + 10, 80, 15);
+      ctx.fillRect(cx + 20, cy, 35, 10);
+    } else {
+      ctx.fillRect(cx, cy + 5, 50, 15);
+      ctx.fillRect(cx + 15, cy - 5, 20, 10);
+    }
+  });
+  ctx.restore();
+}
+
+function render() {
+  camX += (player.x - camX) * 0.1;
+  camY += (player.y - camY) * 0.1;
+
+  ctx.save();
+  ctx.scale(ZOOM, ZOOM);
+
+  let viewW = canvas.width / ZOOM;
+  let viewH = canvas.height / ZOOM;
+  let drawCamX = Math.max(0, Math.min(MAP_W * TILE_SIZE - viewW, camX - viewW / 2));
+  let drawCamY = Math.max(0, Math.min(MAP_H * TILE_SIZE - viewH, camY - viewH / 2));
+
+  let skyGrad = ctx.createLinearGradient(0, 0, 0, viewH);
+  if (timeOfDay < 0.5) {
+    skyGrad.addColorStop(0, "#0284c7");
+    skyGrad.addColorStop(1, "#7dd3fc");
+  } else {
+    skyGrad.addColorStop(0, "#020617");
+    skyGrad.addColorStop(1, "#0f172a");
+  }
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, viewW, viewH);
+
+  renderClouds(drawCamX, drawCamY, viewW, viewH);
+
+  let startX = Math.max(0, Math.floor(drawCamX / TILE_SIZE));
+  let endX = Math.min(MAP_W, Math.ceil((drawCamX + viewW) / TILE_SIZE));
+  let startY = Math.max(0, Math.floor(drawCamY / TILE_SIZE));
+  let endY = Math.min(MAP_H, Math.ceil((drawCamY + viewH) / TILE_SIZE));
+
+  for (let y = startY; y < endY; y++) {
+    for (let x = startX; x < endX; x++) {
+      let tile = world[y][x];
+      if (tile !== 0) {
+        renderTile(tile, x * TILE_SIZE - drawCamX, y * TILE_SIZE - drawCamY, TILE_SIZE, ctx);
+      }
+    }
+  }
+
+  animals.forEach(a => renderAnimal(a, drawCamX, drawCamY));
+  zombies.forEach(z => renderZombie(z, drawCamX, drawCamY));
+
+  let celestialAngle = timeOfDay * Math.PI * 2;
+  let cxCenter = drawCamX + viewW / 2;
+  let cyCenter = drawCamY + viewH / 2;
+  let orbitRadius = 180;
+  let sunX = cxCenter + Math.cos(celestialAngle - Math.PI/2) * orbitRadius - drawCamX;
+  let sunY = cyCenter + Math.sin(celestialAngle - Math.PI/2) * orbitRadius - drawCamY;
+  let moonX = cxCenter + Math.cos(celestialAngle + Math.PI/2) * orbitRadius - drawCamX;
+  let moonY = cyCenter + Math.sin(celestialAngle + Math.PI/2) * orbitRadius - drawCamY;
+
+  if (timeOfDay < 0.5) {
+    ctx.fillStyle = "#facc15";
+    ctx.beginPath(); ctx.arc(sunX, sunY, 14, 0, Math.PI * 2); ctx.fill();
+  } else {
+    ctx.fillStyle = "#f1f5f9";
+    ctx.beginPath(); ctx.arc(moonX, moonY, 12, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (mining.active) {
+    let bx = mining.x * TILE_SIZE - drawCamX;
+    let by = mining.y * TILE_SIZE - drawCamY;
+    let target = world[mining.y][mining.x];
+    let ratio = mining.progress / ITEM_TYPES[target].time;
+
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(bx, by, TILE_SIZE, TILE_SIZE);
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.fillRect(bx, by, TILE_SIZE * ratio, TILE_SIZE);
+  }
+
+  renderPlayerTerraria(player.x - drawCamX, player.y - drawCamY);
+  ctx.restore();
+
+  renderCanvasHotbarUI();
+}
+
+function renderCanvasHotbarUI() {
+  const slotSize = 44;
+  const gap = 6;
+  const startX = (canvas.width - (5 * slotSize + 4 * gap)) / 2;
+  const startY = canvas.height - slotSize - 12;
+
+  updateItemCounts();
+
+  for (let i = 0; i < 5; i++) {
+    let sx = startX + i * (slotSize + gap);
+    let sy = startY;
+
+    ctx.fillStyle = i === player.selectedSlot ? "rgba(56, 189, 248, 0.3)" : "rgba(15, 23, 42, 0.85)";
+    ctx.fillRect(sx, sy, slotSize, slotSize);
+
+    ctx.strokeStyle = i === player.selectedSlot ? "#38bdf8" : "rgba(255, 255, 255, 0.2)";
+    ctx.lineWidth = i === player.selectedSlot ? 3 : 1.5;
+    ctx.strokeRect(sx, sy, slotSize, slotSize);
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "bold 9px sans-serif";
+    ctx.fillText(i + 1, sx + 3, sy + 10);
+
+    let slot = hotbar[i];
+    if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
+      renderTile(slot.id, sx + 6, sy + 6, 32, ctx);
+      if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor && !ITEM_TYPES[slot.id].isWeapon) {
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 10px sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(slot.count, sx + slotSize - 3, sy + slotSize - 3);
+        ctx.textAlign = "left";
+      }
+    }
+  }
+}
+
+let draggedItemInfo = null;
+
+function buildInventoryUI() {
+  updateItemCounts();
+
+  const hbGrid = document.getElementById("modal-hotbar-grid");
+  hbGrid.innerHTML = "";
+  for (let i = 0; i < 5; i++) {
+    let slotDiv = document.createElement("div");
+    slotDiv.className = "inv-slot";
+    let slot = hotbar[i];
+    if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
+      let c = document.createElement("canvas");
+      c.width = 32; c.height = 32;
+      renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
+      slotDiv.appendChild(c);
+      if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor && !ITEM_TYPES[slot.id].isWeapon) {
+        let b = document.createElement("b");
+        b.innerText = slot.count;
+        slotDiv.appendChild(b);
+      }
+      slotDiv.dataset.itemName = ITEM_TYPES[slot.id].name;
+    }
+    setupTooltipEvents(slotDiv);
+    setupDragAndDropEvents(slotDiv, 'hotbar', i);
+    setupTouchSlotInteraction(slotDiv, 'hotbar', i);
+    hbGrid.appendChild(slotDiv);
+  }
+
+  const stGrid = document.getElementById("modal-storage-grid");
+  stGrid.innerHTML = "";
+  for (let i = 0; i < storage.length; i++) {
+    let slotDiv = document.createElement("div");
+    slotDiv.className = "inv-slot";
+    let slot = storage[i];
+    if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
+      let c = document.createElement("canvas");
+      c.width = 32; c.height = 32;
+      renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
+      slotDiv.appendChild(c);
+      if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor && !ITEM_TYPES[slot.id].isWeapon) {
+        let b = document.createElement("b");
+        b.innerText = slot.count;
+        slotDiv.appendChild(b);
+      }
+      slotDiv.dataset.itemName = ITEM_TYPES[slot.id].name;
+    }
+    setupTooltipEvents(slotDiv);
+    setupDragAndDropEvents(slotDiv, 'storage', i);
+    setupTouchSlotInteraction(slotDiv, 'storage', i);
+    stGrid.appendChild(slotDiv);
+  }
+
+  ['head', 'chest', 'legs', 'boots'].forEach(type => {
+    let slotDiv = document.getElementById(`armor-slot-${type}`);
+    slotDiv.innerHTML = "";
+    let slot = equippedArmor[type];
+    if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
+      let c = document.createElement("canvas");
+      c.width = 32; c.height = 32;
+      renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
+      slotDiv.appendChild(c);
+      slotDiv.dataset.itemName = ITEM_TYPES[slot.id].name;
+    } else {
+      slotDiv.dataset.itemName = type.toUpperCase() + " ZIRH SLOTU";
+    }
+    setupTooltipEvents(slotDiv);
+    setupArmorDragAndDropEvents(slotDiv, type);
+  });
+
+  buildInventoryCraftingUI();
+}
+
+// TELEFONDA SLOTLARA DOKUNARAK SEÇME/YER DEĞİŞTİRME (KOLAY MOBİL ENVANTER SİSTEMİ)
+let selectedTouchSource = null;
+function setupTouchSlotInteraction(el, type, index) {
+  el.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!selectedTouchSource) {
+      let slot = type === 'hotbar' ? hotbar[index] : storage[index];
+      if (slot.id && slot.id !== 0) {
+        selectedTouchSource = { type, index };
+        el.style.borderColor = "#f59e0b";
+      }
+    } else {
+      let sourceSlot = selectedTouchSource.type === 'hotbar' ? hotbar[selectedTouchSource.index] : storage[selectedTouchSource.index];
+      let targetSlot = type === 'hotbar' ? hotbar[index] : storage[index];
+
+      let tempId = targetSlot.id;
+      let tempCount = targetSlot.count;
+
+      targetSlot.id = sourceSlot.id;
+      targetSlot.count = sourceSlot.count;
+
+      sourceSlot.id = tempId;
+      sourceSlot.count = tempCount;
+
+      selectedTouchSource = null;
+      buildInventoryUI();
+    }
+  });
+}
+
+function buildInventoryCraftingUI() {
+  updateItemCounts();
+  const list = document.getElementById("inventory-recipe-list");
+  list.innerHTML = "";
+  
+  const recipes = [
+    { result: 8, count: 4, cost: { 4: 1 }, name: "4x Ahşap Blok (1 Odun)" },
+    { result: 9, count: 4, cost: { 8: 1 }, name: "4x Çubuk (1 Ahşap Blok)" },
+    { result: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası (4x Ahşap Blok)" }
+  ];
+
+  recipes.forEach(r => {
+    let canCraft = true;
+    for (let itemId in r.cost) {
+      if ((itemCounts[itemId] || 0) < r.cost[itemId]) {
+        canCraft = false;
+        break;
+      }
+    }
+
+    let card = document.createElement("div");
+    card.className = `recipe-card ${canCraft ? '' : 'disabled'}`;
+    let iconCanvasHTML = `<canvas width="20" height="20" style="image-rendering:pixelated; vertical-align:middle; margin-right:6px;" id="inv-craft-icon-${r.result}"></canvas>`;
+    card.innerHTML = `<div style="display:flex; align-items:center;">${iconCanvasHTML}<span>${r.name}</span></div><span class="craft-btn">Üret</span>`;
+    
+    list.appendChild(card);
+
+    let ic = document.getElementById(`inv-craft-icon-${r.result}`);
+    if (ic) {
+      renderTile(r.result, 0, 0, 20, ic.getContext("2d"));
+    }
+
+    if (canCraft) {
+      card.onclick = () => {
+        for (let itemId in r.cost) {
+          consumePlayerItem(parseInt(itemId), r.cost[itemId]);
+        }
+        addPlayerItem(r.result, r.count);
+        buildInventoryUI();
+      };
+    }
+  });
+}
+
+let currentCraftingCategory = 'all';
+function setCraftingCategory(cat) {
+  currentCraftingCategory = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  buildCraftingTableUI();
+}
+
+function buildCraftingTableUI() {
+  updateItemCounts();
+  const list = document.getElementById("crafting-recipe-list");
+  list.innerHTML = "";
+
+  const recipes = [
+    { cat: 'wood', result: 8, count: 4, cost: { 4: 1 }, name: "4x Ahşap Blok (1 Odun)" },
+    { cat: 'wood', result: 9, count: 4, cost: { 8: 1 }, name: "4x Çubuk (1 Ahşap Blok)" },
+    { cat: 'utility', result: 22, count: 1, cost: { 8: 4 }, name: "Çalışma Masası (4x Ahşap Blok)" },
+    { cat: 'utility', result: 32, count: 1, cost: { 39: 3, 8: 3 }, name: "Yatak (3 Yün, 3 Ahşap Blok)" },
+    { cat: 'utility', result: 33, count: 1, cost: { 3: 8 }, name: "Fırın (8 Taş)" },
+
+    { cat: 'wood', result: 10, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Kazma (3 Ahşap, 2 Çubuk)" },
+    { cat: 'wood', result: 23, count: 1, cost: { 8: 3, 9: 2 }, name: "Tahta Balta (3 Ahşap, 2 Çubuk)" },
+    { cat: 'wood', result: 50, count: 1, cost: { 8: 2, 9: 1 }, name: "Tahta Kılıç (2 Ahşap, 1 Çubuk)" },
+
+    { cat: 'utility', result: 11, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Kazma (3 Taş, 2 Çubuk)" },
+    { cat: 'utility', result: 24, count: 1, cost: { 3: 3, 9: 2 }, name: "Taş Balta (3 Taş, 2 Çubuk)" },
+    { cat: 'utility', result: 51, count: 1, cost: { 3: 2, 9: 1 }, name: "Taş Kılıç (2 Taş, 1 Çubuk)" },
+
+    { cat: 'copper', result: 12, count: 1, cost: { 40: 3, 9: 2 }, name: "Bakır Kazma (3 Bakır, 2 Çubuk)" },
+    { cat: 'copper', result: 25, count: 1, cost: { 40: 3, 9: 2 }, name: "Bakır Balta (3 Bakır, 2 Çubuk)" },
+
+    { cat: 'iron', result: 26, count: 1, cost: { 41: 3, 9: 2 }, name: "Demir Kazma (3 Demir, 2 Çubuk)" },
+    { cat: 'iron', result: 27, count: 1, cost: { 41: 3, 9: 2 }, name: "Demir Balta (3 Demir, 2 Çubuk)" },
+    { cat: 'iron', result: 52, count: 1, cost: { 41: 2, 9: 1 }, name: "Demir Kılıç (2 Demir, 1 Çubuk)" },
+    
+    { cat: 'copper', result: 17, count: 1, cost: { 40: 5 }, name: "Bakır Kask (5 Bakır)" },
+    { cat: 'copper', result: 18, count: 1, cost: { 40: 8 }, name: "Bakır Göğüslük (8 Bakır)" },
+    { cat: 'copper', result: 19, count: 1, cost: { 40: 7 }, name: "Bakır Pantolon (7 Bakır)" },
+    { cat: 'copper', result: 20, count: 1, cost: { 40: 4 }, name: "Bakır Bot (4 Bakır)" },
+
+    { cat: 'iron', result: 28, count: 1, cost: { 41: 5 }, name: "Demir Kask (5 Demir)" },
+    { cat: 'iron', result: 29, count: 1, cost: { 41: 8 }, name: "Demir Göğüslük (8 Demir)" },
+    { cat: 'iron', result: 30, count: 1, cost: { 41: 7 }, name: "Demir Pantolon (7 Demir)" },
+    { cat: 'iron', result: 31, count: 1, cost: { 41: 4 }, name: "Demir Bot (4 Demir)" }
+  ];
+
+  recipes.forEach(r => {
+    if (currentCraftingCategory !== 'all' && r.cat !== currentCraftingCategory) return;
+
+    let canCraft = true;
+    for (let itemId in r.cost) {
+      if ((itemCounts[itemId] || 0) < r.cost[itemId]) {
+        canCraft = false;
+        break;
+      }
+    }
+
+    let card = document.createElement("div");
+    card.className = `recipe-card ${canCraft ? '' : 'disabled'}`;
+    
+    let iconCanvasHTML = `<canvas width="20" height="20" style="image-rendering:pixelated; vertical-align:middle; margin-right:6px;" id="craft-icon-${r.result}"></canvas>`;
+    card.innerHTML = `<div style="display:flex; align-items:center;">${iconCanvasHTML}<span>${r.name}</span></div><span class="craft-btn">Üret</span>`;
+    
+    list.appendChild(card);
+
+    let ic = document.getElementById(`craft-icon-${r.result}`);
+    if (ic) {
+      renderTile(r.result, 0, 0, 20, ic.getContext("2d"));
+    }
+
+    if (canCraft) {
+      card.onclick = () => {
+        for (let itemId in r.cost) {
+          consumePlayerItem(parseInt(itemId), r.cost[itemId]);
+        }
+        addPlayerItem(r.result, r.count);
+        buildCraftingTableUI();
+      };
+    }
+  });
+}
+
+function buildFurnaceUI() {
+  updateItemCounts();
+  const list = document.getElementById("furnace-recipe-list");
+  list.innerHTML = "";
+
+  const recipes = [
+    { result: 40, count: 1, cost: { 7: 1, 6: 1 }, name: "1x Bakır Madeni (1 Bakır Cevheri + 1 Kömür)" },
+    { result: 41, count: 1, cost: { 21: 1, 6: 1 }, name: "1x Demir Madeni (1 Demir Cevheri + 1 Kömür)" },
+    { result: 35, count: 1, cost: { 34: 1, 6: 1 }, name: "Pişmiş İnek Eti (1 Çiğ İnek Eti + 1 Kömür)" },
+    { result: 37, count: 1, cost: { 36: 1, 6: 1 }, name: "Pişmiş Koyun Eti (1 Çiğ Koyun Eti + 1 Kömür)" }
+  ];
+
+  recipes.forEach(r => {
+    let canCraft = true;
+    for (let itemId in r.cost) {
+      if ((itemCounts[itemId] || 0) < r.cost[itemId]) {
+        canCraft = false;
+        break;
+      }
+    }
+
+    let card = document.createElement("div");
+    card.className = `recipe-card ${canCraft ? '' : 'disabled'}`;
+    let iconCanvasHTML = `<canvas width="20" height="20" style="image-rendering:pixelated; vertical-align:middle; margin-right:6px;" id="furnace-icon-${r.result}"></canvas>`;
+    card.innerHTML = `<div style="display:flex; align-items:center;">${iconCanvasHTML}<span>${r.name}</span></div><span class="craft-btn">Erit/Pişir</span>`;
+    
+    list.appendChild(card);
+
+    let ic = document.getElementById(`furnace-icon-${r.result}`);
+    if (ic) {
+      renderTile(r.result, 0, 0, 20, ic.getContext("2d"));
+    }
+
+    if (canCraft) {
+      card.onclick = () => {
+        for (let itemId in r.cost) {
+          consumePlayerItem(parseInt(itemId), r.cost[itemId]);
+        }
+        addPlayerItem(r.result, r.count);
+        buildFurnaceUI();
+      };
+    }
+  });
+}
+
+function setupTooltipEvents(el) {
+  const tooltip = document.getElementById("tooltip");
+  el.addEventListener("mouseenter", (e) => {
+    let name = el.dataset.itemName;
+    if (name) {
+      tooltip.innerText = name;
+      tooltip.style.display = "block";
+    }
+  });
+  el.addEventListener("mousemove", (e) => {
+    tooltip.style.left = (e.clientX + 10) + "px";
+    tooltip.style.top = (e.clientY + 15) + "px";
+  });
+  el.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+  });
+}
+
+function setupDragAndDropEvents(el, type, index) {
+  el.draggable = true;
+  el.addEventListener("dragstart", (e) => {
+    draggedItemInfo = { source: type, index: index };
+  });
+  el.addEventListener("dragover", (e) => e.preventDefault());
+  el.addEventListener("drop", (e) => {
+    e.preventDefault();
+    if (!draggedItemInfo) return;
+    
+    let sourceSlot = draggedItemInfo.source === 'hotbar' ? hotbar[draggedItemInfo.index] : storage[draggedItemInfo.index];
+    let targetSlot = type === 'hotbar' ? hotbar[index] : storage[index];
+
+    let tempId = targetSlot.id;
+    let tempCount = targetSlot.count;
+
+    targetSlot.id = sourceSlot.id;
+    targetSlot.count = sourceSlot.count;
+
+    sourceSlot.id = tempId;
+    sourceSlot.count = tempCount;
+
+    draggedItemInfo = null;
+    buildInventoryUI();
+  });
+}
+
+function setupArmorDragAndDropEvents(el, armorType) {
+  el.addEventListener("dragover", (e) => e.preventDefault());
+  el.addEventListener("drop", (e) => {
+    e.preventDefault();
+    if (!draggedItemInfo) return;
+
+    let sourceSlot = draggedItemInfo.source === 'hotbar' ? hotbar[draggedItemInfo.index] : storage[draggedItemInfo.index];
+    if (sourceSlot.id && ITEM_TYPES[sourceSlot.id]?.isArmor) {
+      if (ITEM_TYPES[sourceSlot.id].armorType === armorType) {
+        let currentArmor = equippedArmor[armorType];
+        
+        let tempId = currentArmor.id;
+        let tempCount = currentArmor.count;
+
+        currentArmor.id = sourceSlot.id;
+        currentArmor.count = sourceSlot.count;
+
+        sourceSlot.id = tempId;
+        sourceSlot.count = tempCount;
+
+        draggedItemInfo = null;
+        buildInventoryUI();
+      }
+    }
+  });
+}
 
 function toggleInventoryModal() {
   let modal = document.getElementById("inventory-modal");
@@ -921,395 +2106,15 @@ function toggleFurnaceModal() {
   }
 }
 
-let draggedItemInfo = null;
-
-function renderItemIconToCanvas(itemId, count, targetCanvas) {
-  let tCtx = targetCanvas.getContext("2d");
-  targetCanvas.width = 28;
-  targetCanvas.height = 28;
-  tCtx.clearRect(0, 0, 28, 28);
-  if (!itemId || itemId === 0) return;
-  let def = ITEM_TYPES[itemId];
-  if (!def) return;
-
-  tCtx.fillStyle = def.color || "#fff";
-  tCtx.fillRect(4, 4, 20, 20);
-  tCtx.fillStyle = def.borderHighlight || def.darkColor || "#000";
-  tCtx.strokeRect(4, 4, 20, 20);
-}
-
-function buildInventoryUI() {
-  updateItemCounts();
-  let hotbarGrid = document.getElementById("modal-hotbar-grid");
-  hotbarGrid.innerHTML = "";
-  hotbar.forEach((slot, index) => {
-    let div = document.createElement("div");
-    div.className = "inv-slot";
-    let cv = document.createElement("canvas");
-    div.appendChild(cv);
-    renderItemIconToCanvas(slot.id, slot.count, cv);
-    if (slot.id && slot.count > 0) {
-      let b = document.createElement("b");
-      b.innerText = slot.count;
-      div.appendChild(b);
-    }
-    div.addEventListener("click", () => {
-      if (draggedItemInfo) {
-        let sourceSlot = getSlotByInfo(draggedItemInfo);
-        let tempId = slot.id;
-        let tempCount = slot.count;
-        slot.id = sourceSlot.id;
-        slot.count = sourceSlot.count;
-        sourceSlot.id = tempId;
-        sourceSlot.count = tempCount;
-        draggedItemInfo = null;
-        buildInventoryUI();
-      } else if (slot.id) {
-        draggedItemInfo = { type: 'hotbar', index: index };
-        buildInventoryUI();
-      }
-    });
-    hotbarGrid.appendChild(div);
-  });
-
-  let storageGrid = document.getElementById("modal-storage-grid");
-  storageGrid.innerHTML = "";
-  storage.forEach((slot, index) => {
-    let div = document.createElement("div");
-    div.className = "inv-slot";
-    let cv = document.createElement("canvas");
-    div.appendChild(cv);
-    renderItemIconToCanvas(slot.id, slot.count, cv);
-    if (slot.id && slot.count > 0) {
-      let b = document.createElement("b");
-      b.innerText = slot.count;
-      div.appendChild(b);
-    }
-    div.addEventListener("click", () => {
-      if (draggedItemInfo) {
-        let sourceSlot = getSlotByInfo(draggedItemInfo);
-        let tempId = slot.id;
-        let tempCount = slot.count;
-        slot.id = sourceSlot.id;
-        slot.count = sourceSlot.count;
-        sourceSlot.id = tempId;
-        sourceSlot.count = tempCount;
-        draggedItemInfo = null;
-        buildInventoryUI();
-      } else if (slot.id) {
-        draggedItemInfo = { type: 'storage', index: index };
-        buildInventoryUI();
-      }
-    });
-    storageGrid.appendChild(div);
-  });
-
-  ['head', 'chest', 'legs', 'boots'].forEach(armorType => {
-    let slotDiv = document.getElementById(`armor-slot-${armorType}`);
-    slotDiv.innerHTML = "";
-    let item = equippedArmor[armorType];
-    let cv = document.createElement("canvas");
-    slotDiv.appendChild(cv);
-    renderItemIconToCanvas(item.id, item.count, cv);
-    slotDiv.onclick = () => {
-      if (draggedItemInfo) {
-        let sourceSlot = getSlotByInfo(draggedItemInfo);
-        if (sourceSlot.id && ITEM_TYPES[sourceSlot.id]?.isArmor && ITEM_TYPES[sourceSlot.id].armorType === armorType) {
-          let tempId = item.id;
-          let tempCount = item.count;
-          item.id = sourceSlot.id;
-          item.count = sourceSlot.count;
-          sourceSlot.id = tempId;
-          sourceSlot.count = tempCount;
-          draggedItemInfo = null;
-          buildInventoryUI();
-        }
-      }
-    };
-  });
-
-  buildInventoryRecipes();
-}
-
-function getSlotByInfo(info) {
-  if (info.type === 'hotbar') return hotbar[info.index];
-  if (info.type === 'storage') return storage[info.index];
-  return null;
-}
-
-function buildInventoryRecipes() {
-  let list = document.getElementById("inventory-recipe-list");
-  list.innerHTML = "";
-  let recipes = [
-    { resultId: 8, resultCount: 4, name: "Ahşap Blok (Odun x1)", check: () => (itemCounts[4] || 0) >= 1, craft: () => { consumePlayerItem(4, 1); addPlayerItem(8, 4); } },
-    { resultId: 9, resultCount: 4, name: "Çubuk (Ahşap Blok x1)", check: () => (itemCounts[8] || 0) >= 1, craft: () => { consumePlayerItem(8, 1); addPlayerItem(9, 4); } },
-    { resultId: 22, resultCount: 1, name: "Çalışma Masası (Ahşap Blok x4)", check: () => (itemCounts[8] || 0) >= 4, craft: () => { consumePlayerItem(8, 4); addPlayerItem(22, 1); } }
-  ];
-
-  recipes.forEach(r => {
-    let card = document.createElement("div");
-    card.className = "recipe-card" + (r.check() ? "" : " disabled");
-    card.innerHTML = `<span>${r.name}</span><div class="craft-btn">Üret</div>`;
-    card.onclick = () => {
-      if (r.check()) {
-        r.craft();
-        buildInventoryUI();
-      }
-    };
-    list.appendChild(card);
-  });
-}
-
-let activeCraftingCategory = 'all';
-function setCraftingCategory(cat) {
-  activeCraftingCategory = cat;
-  document.querySelectorAll('#crafting-tabs .cat-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-  buildCraftingTableUI();
-}
-
-function buildCraftingTableUI() {
-  updateItemCounts();
-  let list = document.getElementById("crafting-recipe-list");
-  list.innerHTML = "";
-
-  let allRecipes = [
-    { cat: 'wood', resultId: 10, count: 1, name: "Tahta Kazma (Ahşapx3, Çubux2)", check: () => (itemCounts[8] >= 3 && itemCounts[9] >= 2), craft: () => { consumePlayerItem(8, 3); consumePlayerItem(9, 2); addPlayerItem(10, 1); } },
-    { cat: 'wood', resultId: 23, count: 1, name: "Tahta Balta (Ahşapx3, Çubux2)", check: () => (itemCounts[8] >= 3 && itemCounts[9] >= 2), craft: () => { consumePlayerItem(8, 3); consumePlayerItem(9, 2); addPlayerItem(23, 1); } },
-    { cat: 'wood', resultId: 50, count: 1, name: "Tahta Kılıç (Ahşapx2, Çubux1)", check: () => (itemCounts[8] >= 2 && itemCounts[9] >= 1), craft: () => { consumePlayerItem(8, 2); consumePlayerItem(9, 1); addPlayerItem(50, 1); } },
-
-    { cat: 'copper', resultId: 12, count: 1, name: "Bakır Kazma (Bakırx3, Çubux2)", check: () => (itemCounts[40] >= 3 && itemCounts[9] >= 2), craft: () => { consumePlayerItem(40, 3); consumePlayerItem(9, 2); addPlayerItem(12, 1); } },
-    { cat: 'copper', resultId: 25, count: 1, name: "Bakır Balta (Bakırx3, Çubux2)", check: () => (itemCounts[40] >= 3 && itemCounts[9] >= 2), craft: () => { consumePlayerItem(40, 3); consumePlayerItem(9, 2); addPlayerItem(25, 1); } },
-    { cat: 'copper', resultId: 17, count: 1, name: "Bakır Kask (Bakırx5)", check: () => (itemCounts[40] >= 5), craft: () => { consumePlayerItem(40, 5); addPlayerItem(17, 1); } },
-    { cat: 'copper', resultId: 18, count: 1, name: "Bakır Göğüslük (Bakırx8)", check: () => (itemCounts[40] >= 8), craft: () => { consumePlayerItem(40, 8); addPlayerItem(18, 1); } },
-    { cat: 'copper', resultId: 19, count: 1, name: "Bakır Pantolon (Bakırx7)", check: () => (itemCounts[40] >= 7), craft: () => { consumePlayerItem(40, 7); addPlayerItem(19, 1); } },
-    { cat: 'copper', resultId: 20, count: 1, name: "Bakır Bot (Bakırx4)", check: () => (itemCounts[40] >= 4), craft: () => { consumePlayerItem(40, 4); addPlayerItem(20, 1); } },
-
-    { cat: 'iron', resultId: 26, count: 1, name: "Demir Kazma (Demirx3, Çubux2)", check: () => (itemCounts[41] >= 3 && itemCounts[9] >= 2), craft: () => { consumePlayerItem(41, 3); consumePlayerItem(9, 2); addPlayerItem(26, 1); } },
-    { cat: 'iron', resultId: 27, count: 1, name: "Demir Balta (Demirx3, Çubux2)", check: () => (itemCounts[41] >= 3 && itemCounts[9] >= 2), craft: () => { consumePlayerItem(41, 3); consumePlayerItem(9, 2); addPlayerItem(27, 1); } },
-    { cat: 'iron', resultId: 52, count: 1, name: "Demir Kılıç (Demirx2, Çubux1)", check: () => (itemCounts[41] >= 2 && itemCounts[9] >= 1), craft: () => { consumePlayerItem(41, 2); consumePlayerItem(9, 1); addPlayerItem(52, 1); } },
-    { cat: 'iron', resultId: 28, count: 1, name: "Demir Kask (Demirx5)", check: () => (itemCounts[41] >= 5), craft: () => { consumePlayerItem(41, 5); addPlayerItem(28, 1); } },
-    { cat: 'iron', resultId: 29, count: 1, name: "Demir Göğüslük (Demirx8)", check: () => (itemCounts[41] >= 8), craft: () => { consumePlayerItem(41, 8); addPlayerItem(29, 1); } },
-    { cat: 'iron', resultId: 30, count: 1, name: "Demir Pantolon (Demirx7)", check: () => (itemCounts[41] >= 7), craft: () => { consumePlayerItem(41, 7); addPlayerItem(30, 1); } },
-    { cat: 'iron', resultId: 31, count: 1, name: "Demir Bot (Demirx4)", check: () => (itemCounts[41] >= 4), craft: () => { consumePlayerItem(41, 4); addPlayerItem(31, 1); } },
-
-    { cat: 'utility', resultId: 32, count: 1, name: "Yatak (Ahşapx4, Yünx3)", check: () => (itemCounts[8] >= 4 && itemCounts[39] >= 3), craft: () => { consumePlayerItem(8, 4); consumePlayerItem(39, 3); addPlayerItem(32, 1); } },
-    { cat: 'utility', resultId: 33, count: 1, name: "Fırın (Taşx8)", check: () => (itemCounts[3] >= 8), craft: () => { consumePlayerItem(3, 8); addPlayerItem(33, 1); } }
-  ];
-
-  let filtered = allRecipes.filter(r => activeCraftingCategory === 'all' || r.cat === activeCraftingCategory);
-  filtered.forEach(r => {
-    let card = document.createElement("div");
-    card.className = "recipe-card" + (r.check() ? "" : " disabled");
-    card.innerHTML = `<span>${r.name}</span><div class="craft-btn">Üret</div>`;
-    card.onclick = () => {
-      if (r.check()) {
-        r.craft();
-        buildCraftingTableUI();
-      }
-    };
-    list.appendChild(card);
-  });
-}
-
-function buildFurnaceUI() {
-  updateItemCounts();
-  let list = document.getElementById("furnace-recipe-list");
-  list.innerHTML = "";
-  let recipes = [
-    { name: "Bakır Külçesi (Bakır Cevherix1, Kömürx1)", check: () => (itemCounts[7] >= 1 && itemCounts[6] >= 1), craft: () => { consumePlayerItem(7, 1); consumePlayerItem(6, 1); addPlayerItem(40, 1); } },
-    { name: "Demir Külçesi (Demir Cevherix1, Kömürx1)", check: () => (itemCounts[21] >= 1 && itemCounts[6] >= 1), craft: () => { consumePlayerItem(21, 1); consumePlayerItem(6, 1); addPlayerItem(41, 1); } },
-    { name: "Pişmiş İnek Eti (Çiğ İnek Etix1, Kömürx1)", check: () => (itemCounts[34] >= 1 && itemCounts[6] >= 1), craft: () => { consumePlayerItem(34, 1); consumePlayerItem(6, 1); addPlayerItem(35, 1); } },
-    { name: "Pişmiş Koyun Eti (Çiğ Koyun Etix1, Kömürx1)", check: () => (itemCounts[36] >= 1 && itemCounts[6] >= 1), craft: () => { consumePlayerItem(36, 1); consumePlayerItem(6, 1); addPlayerItem(37, 1); } }
-  ];
-
-  recipes.forEach(r => {
-    let card = document.createElement("div");
-    card.className = "recipe-card" + (r.check() ? "" : " disabled");
-    card.innerHTML = `<span>${r.name}</span><div class="craft-btn">Erit/Pişir</div>`;
-    card.onclick = () => {
-      if (r.check()) {
-        r.craft();
-        buildFurnaceUI();
-      }
-    };
-    list.appendChild(card);
-  });
-}
-
-// KARAKTER ÇİZİMİ VE GÖRSEL ZIRH ENTEGRASYONU (Parlamalar ve renk değişimi kaldırıldı)
-function drawPlayer(renderX, renderY) {
-  ctx.save();
-  ctx.translate(renderX, renderY);
-  if (player.facing === -1) {
-    ctx.scale(-1, 1);
-    ctx.translate(-player.w, 0);
-  }
-
-  // 1. Ayaklar ve Siyah Ayakkabılar
-  ctx.fillStyle = "#171717";
-  ctx.fillRect(2, 38, 6, 4);
-  ctx.fillRect(10, 38, 6, 4);
-
-  // 2. Pantolon (Açık Lacivert)
-  ctx.fillStyle = "#3b82f6";
-  ctx.fillRect(2, 26, 6, 12);
-  ctx.fillRect(10, 26, 6, 12);
-
-  // 3. Gövde - Önü Açık Kırmızı/Siyah Pikseller ve Altta Beyaz Tişört
-  ctx.fillStyle = "#ffffff"; // Alttan gözüken beyaz tişört
-  ctx.fillRect(3, 14, 12, 12);
-
-  // Kırmızı ve Siyah piksellerden oluşan açık gömlek çizgileri
-  for (let gx = 3; gx < 15; gx += 2) {
-    ctx.fillStyle = "#ef4444"; // Kırmızı çizgi
-    ctx.fillRect(gx, 14, 1, 12);
-    if (gx + 1 < 15) {
-      ctx.fillStyle = "#000000"; // Siyah çizgi
-      ctx.fillRect(gx + 1, 14, 1, 12);
-    }
-  }
-  // Gömleğin açık ön kısmı (ortada beyaz tişört görünür kalır)
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(8, 14, 2, 8);
-
-  // Eller / Kollar
-  ctx.fillStyle = "#f5d061";
-  ctx.fillRect(0, 16, 3, 10);
-  ctx.fillRect(15, 16, 3, 10);
-
-  // 4. Kafa / Yüz
-  ctx.fillStyle = "#fcd34d";
-  ctx.fillRect(3, 4, 12, 10);
-  // Gözler
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(10, 7, 2, 2);
-
-  // 5. ZIRH GÖRSEL KATMANLARI (Giyildiyse Karakter Üstünde Gözükür)
-  // Pantolon Zırhı
-  if (equippedArmor.legs.id && ITEM_TYPES[equippedArmor.legs.id]) {
-    ctx.fillStyle = ITEM_TYPES[equippedArmor.legs.id].color;
-    ctx.fillRect(2, 28, 6, 8);
-    ctx.fillRect(10, 28, 6, 8);
-  }
-  // Bot Zırhı
-  if (equippedArmor.boots.id && ITEM_TYPES[equippedArmor.boots.id]) {
-    ctx.fillStyle = ITEM_TYPES[equippedArmor.boots.id].color;
-    ctx.fillRect(2, 38, 6, 4);
-    ctx.fillRect(10, 38, 6, 4);
-  }
-  // Göğüslük Zırhı
-  if (equippedArmor.chest.id && ITEM_TYPES[equippedArmor.chest.id]) {
-    ctx.fillStyle = ITEM_TYPES[equippedArmor.chest.id].color;
-    ctx.fillRect(2, 13, 14, 13);
-  }
-  // Kask Zırhı
-  if (equippedArmor.head.id && ITEM_TYPES[equippedArmor.head.id]) {
-    ctx.fillStyle = ITEM_TYPES[equippedArmor.head.id].color;
-    ctx.fillRect(2, 2, 14, 5);
-  }
-
-  ctx.restore();
-}
-
-function updateGame() {
-  totalGameTicks++;
-  timeOfDay = (totalGameTicks % 7200) / 7200;
-  if (totalGameTicks % 7200 === 0) currentDay++;
-
-  // Hareket Mantığı
-  if (keys["a"] || keys["arrowleft"]) {
-    player.vx -= player.accX;
-    if (player.vx < -player.maxSpeed) player.vx = -player.maxSpeed;
-    player.facing = -1;
-  } else if (keys["d"] || keys["arrowright"]) {
-    player.vx += player.accX;
-    if (player.vx > player.maxSpeed) player.vx = player.maxSpeed;
-    player.facing = 1;
-  } else {
-    player.vx *= player.friction;
-  }
-
-  player.vy += 0.35; // Yerçekimi
-
-  // Çarpışma Kontrolleri
-  player.x += player.vx;
-  let tx = Math.floor((player.x + player.w / 2) / TILE_SIZE);
-  let ty = Math.floor((player.y + player.h / 2) / TILE_SIZE);
-
-  if (player.x < 0) player.x = 0;
-  if (player.x > (MAP_W - 1) * TILE_SIZE) player.x = (MAP_W - 1) * TILE_SIZE;
-
-  player.y += player.vy;
-  player.grounded = false;
-
-  let fX1 = Math.floor(player.x / TILE_SIZE);
-  let fX2 = Math.floor((player.x + player.w - 1) / TILE_SIZE);
-  let fY = Math.floor((player.y + player.h) / TILE_SIZE);
-
-  if (fY >= 0 && fY < MAP_H) {
-    if ((fX1 >= 0 && fX1 < MAP_W && world[fY][fX1] && ITEM_TYPES[world[fY][fX1]].solid) ||
-        (fX2 >= 0 && fX2 < MAP_W && world[fY][fX2] && ITEM_TYPES[world[fY][fX2]].solid)) {
-      player.y = fY * TILE_SIZE - player.h;
-      player.vy = 0;
-      player.grounded = true;
-    }
-  }
-
-  // HUD Güncelleme
-  document.getElementById("health-display").innerText = `❤️ ${player.health} / ${player.maxHealth}`;
-  document.getElementById("hunger-display").innerText = `🍗 ${player.hunger} / ${player.maxHunger}`;
-  
-  let timeStr = "☀️ Gündüz";
-  if (timeOfDay > 0.25 && timeOfDay < 0.75) timeStr = "🌙 Gece";
-  document.getElementById("time-display").innerText = `${timeStr} (${currentDay}. Gün)`;
-}
-
-function renderGame() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Arka plan rengi (Gündüz/Gece geçişli)
-  let skyColor = timeOfDay > 0.25 && timeOfDay < 0.75 ? "#020617" : "#38bdf8";
-  ctx.fillStyle = skyColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  let cameraX = player.x - canvas.width / 2;
-  let cameraY = player.y - canvas.height / 2;
-
-  ctx.save();
-  ctx.translate(-cameraX, -cameraY);
-
-  // Dünyayı Çiz
-  let startX = Math.floor(cameraX / TILE_SIZE);
-  let endX = startX + Math.ceil(canvas.width / TILE_SIZE) + 1;
-  let startY = Math.floor(cameraY / TILE_SIZE);
-  let endY = startY + Math.ceil(canvas.height / TILE_SIZE) + 1;
-
-  for (let y = Math.max(0, startY); y <= Math.min(MAP_H - 1, endY); y++) {
-    for (let x = Math.max(0, startX); x <= Math.min(MAP_W - 1, endX); x++) {
-      let id = world[y][x];
-      if (id !== 0) {
-        let def = ITEM_TYPES[id];
-        ctx.fillStyle = def.color || "#fff";
-        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      }
-    }
-  }
-
-  // Karakteri Çiz
-  drawPlayer(player.x, player.y);
-
-  ctx.restore();
-}
+loadGameData();
 
 function gameLoop() {
-  updateGame();
-  renderGame();
+  updatePhysics();
+  render();
   requestAnimationFrame(gameLoop);
 }
 
-loadGameData();
-gameLoop();
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
