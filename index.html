@@ -129,6 +129,7 @@
       justify-content: center;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      z-index: 30;
     }
 
     #inventory-modal {
@@ -141,11 +142,13 @@
       backdrop-filter: blur(12px);
       border: 2px solid #38bdf8;
       border-radius: 12px;
-      padding: 25px 15px 15px 15px;
+      padding: 35px 15px 15px 15px;
       width: 95%;
       max-width: 520px;
-      max-height: 90vh;
+      max-height: 85vh;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
       z-index: 20;
       color: #fff;
@@ -235,6 +238,8 @@
       gap: 5px;
       max-height: 140px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
     }
     .recipe-card {
       display: flex;
@@ -260,11 +265,13 @@
       backdrop-filter: blur(12px);
       border: 2px solid #f59e0b;
       border-radius: 12px;
-      padding: 25px 15px 15px 15px;
+      padding: 35px 15px 15px 15px;
       width: 90%;
       max-width: 440px;
-      max-height: 80vh;
+      max-height: 85vh;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
       z-index: 25;
       color: #fff;
@@ -284,6 +291,7 @@
       margin-bottom: 8px;
       overflow-x: auto;
       padding-bottom: 4px;
+      touch-action: pan-x;
     }
     .cat-tab {
       background: rgba(30, 41, 59, 0.9);
@@ -312,9 +320,13 @@
       backdrop-filter: blur(12px);
       border: 2px solid #ea580c;
       border-radius: 12px;
-      padding: 25px 15px 15px 15px;
+      padding: 35px 15px 15px 15px;
       width: 90%;
       max-width: 380px;
+      max-height: 85vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
       z-index: 26;
       color: #fff;
     }
@@ -394,7 +406,7 @@
       <div class="cat-tab" onclick="setCraftingCategory('iron')">Demir</div>
       <div class="cat-tab" onclick="setCraftingCategory('utility')">Eşyalar</div>
     </div>
-    <div class="recipe-list" id="crafting-recipe-list"></div>
+    <div class="recipe-list" id="crafting-recipe-list" style="max-height: 240px;"></div>
   </div>
 
   <div id="furnace-modal">
@@ -430,7 +442,8 @@ function toggleFullScreen() {
 }
 
 const TILE_SIZE = 32;
-const ZOOM = 1.65; 
+// Telefonda daha geniş açıyla her şeyin sığması için ZOOM değeri hafifçe küçültüldü
+const ZOOM = 1.35; 
 const MAP_W = 400; 
 const MAP_H = 160; 
 
@@ -595,57 +608,6 @@ function spawnEntities() {
 }
 spawnEntities();
 
-function loadGameData() {
-  try {
-    const saved = localStorage.getItem('terraria_2d_save');
-    if (saved) {
-      const data = JSON.parse(saved);
-      if (data.player) {
-        player.x = data.player.x;
-        player.y = data.player.y;
-        player.health = data.player.health;
-        player.hunger = data.player.hunger;
-      }
-      if (data.hotbar) {
-        for (let i = 0; i < hotbar.length; i++) {
-          if (data.hotbar[i]) hotbar[i] = data.hotbar[i];
-        }
-      }
-      if (data.storage) {
-        for (let i = 0; i < storage.length; i++) {
-          if (data.storage[i]) storage[i] = data.storage[i];
-        }
-      }
-      if (data.spawnBedX !== undefined) spawnBedX = data.spawnBedX;
-      if (data.spawnBedY !== undefined) spawnBedY = data.spawnBedY;
-    }
-  } catch(e) {}
-}
-
-function saveGameData() {
-  try {
-    const data = {
-      player: { x: player.x, y: player.y, health: player.health, hunger: player.hunger },
-      hotbar: hotbar,
-      storage: storage,
-      spawnBedX: spawnBedX,
-      spawnBedY: spawnBedY
-    };
-    localStorage.setItem('terraria_2d_save', JSON.stringify(data));
-  } catch(e) {}
-}
-
-function resetGameData() {
-  if (confirm("Dünyayı ve tüm verileri sıfırlamak istediğine emin misin?")) {
-    localStorage.removeItem('terraria_2d_save');
-    location.reload();
-  }
-}
-
-window.addEventListener("beforeunload", () => {
-  saveGameData();
-});
-
 const hotbar = [
   { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
 ];
@@ -663,14 +625,83 @@ const equippedArmor = {
   boots: { id: 0, count: 0 }
 };
 
+function loadGameData() {
+  try {
+    const saved = localStorage.getItem('terraria_2d_save');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.player) {
+        player.x = data.player.x;
+        player.y = data.player.y;
+        player.health = data.player.health;
+        player.hunger = data.player.hunger;
+      }
+      if (data.hotbar) {
+        for (let i = 0; i < hotbar.length; i++) {
+          hotbar[i] = data.hotbar[i] || { id: 0, count: 0 };
+        }
+      }
+      if (data.storage) {
+        for (let i = 0; i < storage.length; i++) {
+          storage[i] = data.storage[i] || { id: 0, count: 0 };
+        }
+      }
+      if (data.armor) {
+        for (let k in equippedArmor) {
+          equippedArmor[k] = data.armor[k] || { id: 0, count: 0 };
+        }
+      }
+      if (data.spawnBedX !== undefined) spawnBedX = data.spawnBedX;
+      if (data.spawnBedY !== undefined) spawnBedY = data.spawnBedY;
+    }
+  } catch(e) {}
+}
+
+function saveGameData() {
+  try {
+    const data = {
+      player: { x: player.x, y: player.y, health: player.health, hunger: player.hunger },
+      hotbar: hotbar,
+      storage: storage,
+      armor: equippedArmor,
+      spawnBedX: spawnBedX,
+      spawnBedY: spawnBedY
+    };
+    localStorage.setItem('terraria_2d_save', JSON.stringify(data));
+  } catch(e) {}
+}
+
+function resetGameData() {
+  if (confirm("Dünyayı ve tüm verileri sıfırlamak istediğine emin misin?")) {
+    localStorage.removeItem('terraria_2d_save');
+    for (let i = 0; i < hotbar.length; i++) { hotbar[i] = { id: 0, count: 0 }; }
+    for (let i = 0; i < storage.length; i++) { storage[i] = { id: 0, count: 0 }; }
+    for (let k in equippedArmor) { equippedArmor[k] = { id: 0, count: 0 }; }
+    spawnBedX = -1;
+    spawnBedY = -1;
+    initWorld();
+    player.x = 20 * TILE_SIZE;
+    player.y = (surfaceY - 4) * TILE_SIZE;
+    player.health = player.maxHealth;
+    player.hunger = player.maxHunger;
+    updateItemCounts();
+    buildInventoryUI();
+    alert("Oyun tamamen sıfırlandı!");
+  }
+}
+
+window.addEventListener("beforeunload", () => {
+  saveGameData();
+});
+
 const itemCounts = {};
 
 function updateItemCounts() {
   for (let key in itemCounts) delete itemCounts[key];
   const tally = (slot) => {
-    if (slot.id && slot.id !== 0 && slot.count > 0) {
+    if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
       itemCounts[slot.id] = (itemCounts[slot.id] || 0) + slot.count;
-    } else {
+    } else if (slot) {
       slot.id = 0;
       slot.count = 0;
     }
@@ -968,7 +999,7 @@ function handleCanvasInteraction(clientX, clientY, isSecondary) {
             addPlayerItem(34, 1); 
           } else {
             addPlayerItem(36, 1); 
-            addPlayerItem(39, 1); // Koyundan yün düşer
+            addPlayerItem(39, 1);
           }
           animals.splice(idx, 1);
         }
@@ -984,7 +1015,6 @@ function handleCanvasInteraction(clientX, clientY, isSecondary) {
   }
 }
 
-// Telefonda dokunarak kırma/koyma sorunsuz çalışması için eklendi
 canvas.addEventListener("mousedown", e => {
   handleCanvasInteraction(e.clientX, e.clientY, e.button === 2);
 });
@@ -1013,7 +1043,7 @@ function isSolidBlock(px, py) {
   let ty = Math.floor(py / TILE_SIZE);
   if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return true;
   let blockId = world[ty][tx];
-  if (blockId === 5) return false; // Yapraklardan geçilebilir
+  if (blockId === 5) return false;
   return ITEM_TYPES[blockId].solid;
 }
 
@@ -1117,8 +1147,8 @@ function updatePhysics() {
         if (mining.progress >= ITEM_TYPES[target].time) {
           let mined = target;
           world[mining.y][mining.x] = 0;
-          if (mined === 7) addPlayerItem(40, 1); // Bakır cevheri -> Bakır madeni
-          else if (mined === 21) addPlayerItem(41, 1); // Demir cevheri -> Demir madeni
+          if (mined === 7) addPlayerItem(40, 1);
+          else if (mined === 21) addPlayerItem(41, 1);
           else addPlayerItem(mined, 1);
 
           if (mined === 4) checkTreeLeavesDecay(mining.x, mining.y);
@@ -1211,7 +1241,6 @@ function renderTile(id, x, y, size, targetCtx) {
     targetCtx.fillStyle = info.darkColor;
     targetCtx.fillRect(x + 5, y + 6, 6, 5);
   } else if (id === 3) {
-    // Taşın düzgün görseli (detaylı doku)
     targetCtx.fillStyle = "#4b5563";
     targetCtx.fillRect(x + 6, y + 6, 8, 6);
     targetCtx.fillRect(x + 18, y + 16, 7, 7);
@@ -1411,7 +1440,6 @@ function render() {
   animals.forEach(a => renderAnimal(a, drawCamX, drawCamY));
   zombies.forEach(z => renderZombie(z, drawCamX, drawCamY));
 
-  // Güneş ve Ay Oyuncu Ekranında Gökyüzünde Sabit/Hareketli Görünecek
   let celestialAngle = timeOfDay * Math.PI * 2;
   let cxCenter = drawCamX + viewW / 2;
   let cyCenter = drawCamY + viewH / 2;
@@ -1472,7 +1500,7 @@ function renderCanvasHotbarUI() {
     ctx.fillText(i + 1, sx + 3, sy + 10);
 
     let slot = hotbar[i];
-    if (slot.id && slot.id !== 0 && slot.count > 0) {
+    if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
       renderTile(slot.id, sx + 6, sy + 6, 32, ctx);
       if (!ITEM_TYPES[slot.id].isTool && !ITEM_TYPES[slot.id].isArmor) {
         ctx.fillStyle = "#fff";
@@ -1496,7 +1524,7 @@ function buildInventoryUI() {
     let slotDiv = document.createElement("div");
     slotDiv.className = "inv-slot";
     let slot = hotbar[i];
-    if (slot.id && slot.id !== 0 && slot.count > 0) {
+    if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
       let c = document.createElement("canvas");
       c.width = 32; c.height = 32;
       renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
@@ -1519,7 +1547,7 @@ function buildInventoryUI() {
     let slotDiv = document.createElement("div");
     slotDiv.className = "inv-slot";
     let slot = storage[i];
-    if (slot.id && slot.id !== 0 && slot.count > 0) {
+    if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
       let c = document.createElement("canvas");
       c.width = 32; c.height = 32;
       renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
@@ -1540,7 +1568,7 @@ function buildInventoryUI() {
     let slotDiv = document.getElementById(`armor-slot-${type}`);
     slotDiv.innerHTML = "";
     let slot = equippedArmor[type];
-    if (slot.id && slot.id !== 0 && slot.count > 0) {
+    if (slot && slot.id && slot.id !== 0 && slot.count > 0) {
       let c = document.createElement("canvas");
       c.width = 32; c.height = 32;
       renderTile(slot.id, 0, 0, 32, c.getContext("2d"));
@@ -1578,8 +1606,16 @@ function buildInventoryCraftingUI() {
 
     let card = document.createElement("div");
     card.className = `recipe-card ${canCraft ? '' : 'disabled'}`;
-    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">Üret</span>`;
+    let iconCanvasHTML = `<canvas width="20" height="20" style="image-rendering:pixelated; vertical-align:middle; margin-right:6px;" id="inv-craft-icon-${r.result}"></canvas>`;
+    card.innerHTML = `<div style="display:flex; align-items:center;">${iconCanvasHTML}<span>${r.name}</span></div><span class="craft-btn">Üret</span>`;
     
+    list.appendChild(card);
+
+    let ic = document.getElementById(`inv-craft-icon-${r.result}`);
+    if (ic) {
+      renderTile(r.result, 0, 0, 20, ic.getContext("2d"));
+    }
+
     if (canCraft) {
       card.onclick = () => {
         for (let itemId in r.cost) {
@@ -1589,7 +1625,6 @@ function buildInventoryCraftingUI() {
         buildInventoryUI();
       };
     }
-    list.appendChild(card);
   });
 }
 
@@ -1647,7 +1682,6 @@ function buildCraftingTableUI() {
     let card = document.createElement("div");
     card.className = `recipe-card ${canCraft ? '' : 'disabled'}`;
     
-    // Görsel destekli kart tasarımı
     let iconCanvasHTML = `<canvas width="20" height="20" style="image-rendering:pixelated; vertical-align:middle; margin-right:6px;" id="craft-icon-${r.result}"></canvas>`;
     card.innerHTML = `<div style="display:flex; align-items:center;">${iconCanvasHTML}<span>${r.name}</span></div><span class="craft-btn">Üret</span>`;
     
@@ -1693,8 +1727,16 @@ function buildFurnaceUI() {
 
     let card = document.createElement("div");
     card.className = `recipe-card ${canCraft ? '' : 'disabled'}`;
-    card.innerHTML = `<span>${r.name}</span><span class="craft-btn">Erit/Pişir</span>`;
+    let iconCanvasHTML = `<canvas width="20" height="20" style="image-rendering:pixelated; vertical-align:middle; margin-right:6px;" id="furnace-icon-${r.result}"></canvas>`;
+    card.innerHTML = `<div style="display:flex; align-items:center;">${iconCanvasHTML}<span>${r.name}</span></div><span class="craft-btn">Erit/Pişir</span>`;
     
+    list.appendChild(card);
+
+    let ic = document.getElementById(`furnace-icon-${r.result}`);
+    if (ic) {
+      renderTile(r.result, 0, 0, 20, ic.getContext("2d"));
+    }
+
     if (canCraft) {
       card.onclick = () => {
         for (let itemId in r.cost) {
@@ -1704,7 +1746,6 @@ function buildFurnaceUI() {
         buildFurnaceUI();
       };
     }
-    list.appendChild(card);
   });
 }
 
